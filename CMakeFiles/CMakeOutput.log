@@ -1,0 +1,28 @@
+The system is: Linux - 5.15.0-136-generic - x86_64
+Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" succeeded.
+Compiler: /bin/g++ 
+Build flags: 
+Id flags:  
+
+The output was:
+0
+
+
+Compilation of the CXX compiler identification source "CMakeCXXCompilerId.cpp" produced "a.out"
+
+The CXX compiler identification is GNU, found in "/home/amigo/Documents/repos/hero_sam/CMakeFiles/3.16.3/CompilerIdCXX/a.out"
+
+Determining if the CXX compiler works passed with the following output:
+Change Dir: /home/amigo/Documents/repos/hero_sam/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/usr/bin/make cmTC_e12fe/fast && /usr/bin/make -f CMakeFiles/cmTC_e12fe.dir/build.make CMakeFiles/cmTC_e12fe.dir/build
+make[1]: Entering directory '/home/amigo/Documents/repos/hero_sam/CMakeFiles/CMakeTmp'
+Building CXX object CMakeFiles/cmTC_e12fe.dir/testCXXCompiler.cxx.o
+/bin/g++     -o CMakeFiles/cmTC_e12fe.dir/testCXXCompiler.cxx.o -c /home/amigo/Documents/repos/hero_sam/CMakeFiles/CMakeTmp/testCXXCompiler.cxx
+Linking CXX executable cmTC_e12fe
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_e12fe.dir/link.txt --verbose=1
+/bin/g++       CMakeFiles/cmTC_e12fe.dir/testCXXCompiler.cxx.o  -o cmTC_e12fe 
+make[1]: Leaving directory '/home/amigo/Documents/repos/hero_sam/CMakeFiles/CMakeTmp'
+
+
+
