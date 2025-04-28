@@ -19,8 +19,8 @@ set(ONNXRUNTIME_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../onnxruntime-linux-x64-${ONN
 include_directories(${ONNXRUNTIME_ROOT}/include)
 
 # -------------- Cuda ------------------#
-#add_definitions(-DUSE_CUDA=1)
-#include_directories(/usr/local/cuda/include)
+add_definitions(-DUSE_CUDA=1)
+include_directories(/usr/local/cuda/include)
 
 set(PROJECT_SOURCES
         main.cpp
