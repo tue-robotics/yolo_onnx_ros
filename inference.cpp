@@ -21,6 +21,8 @@ namespace Ort
 #endif
 
 
+// Definition: Flattened image to blob (and normalizaed) for deep learning inference. Also reorganize from HWC to CHW.
+// Note: Not in the header file since it is not used outside of this file.
 template<typename T>
 char* BlobFromImage(cv::Mat& iImg, T& iBlob) {
     int channels = iImg.channels();
