@@ -15,7 +15,7 @@ include_directories(${OpenCV_INCLUDE_DIRS})
 
 # -------------- ONNXRuntime  ------------------#
 set(ONNXRUNTIME_VERSION 1.21.0)
-set(ONNXRUNTIME_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../onnxruntime-linux-x64-${ONNXRUNTIME_VERSION}")
+set(ONNXRUNTIME_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../onnxruntime-linux-x64-gpu-1.21.1")
 include_directories(${ONNXRUNTIME_ROOT}/include)
 
 # -------------- Cuda ------------------#
@@ -23,12 +23,12 @@ add_definitions(-DUSE_CUDA=1)
 include_directories(/usr/local/cuda/include)
 
 set(PROJECT_SOURCES
-        main.cpp
-        inference.h
-        inference.cpp
+        src/main.cpp
+        src/inference.cpp
 )
 
 add_executable(${PROJECT_NAME} ${PROJECT_SOURCES})
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/inc)
 
 # Link OpenCV libraries along with ONNX Runtime
 target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBS} ${ONNXRUNTIME_ROOT}/lib/libonnxruntime.so)
@@ -43,10 +43,10 @@ endif ()
 
 # Download https://raw.githubusercontent.com/ultralytics/ultralytics/main/ultralytics/cfg/datasets/coco.yaml
 # and put it in the same folder of the executable file
-configure_file(coco.yaml ${CMAKE_CURRENT_BINARY_DIR}/coco.yaml COPYONLY)
+configure_file(data/coco.yaml ${CMAKE_CURRENT_BINARY_DIR}/coco.yaml COPYONLY)
 
 # Copy yolov8n.onnx file to the same folder of the executable file
-configure_file(yolo11m.onnx ${CMAKE_CURRENT_BINARY_DIR}/yolo11m.onnx COPYONLY)
+configure_file(model/yolo11m.onnx ${CMAKE_CURRENT_BINARY_DIR}/yolo11m.onnx COPYONLY)
 
 # Create folder name images in the same folder of the executable file
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
