@@ -1,4 +1,4 @@
-#include "inference.h"
+#include "yolo_inference.h"
 #include <regex>
 
 #define benchmark
