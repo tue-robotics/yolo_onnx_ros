@@ -24,7 +24,7 @@ include_directories(/usr/local/cuda/include)
 
 set(PROJECT_SOURCES
         src/main.cpp
-        src/inference.cpp
+        src/yolo_inference.cpp
 )
 
 add_executable(${PROJECT_NAME} ${PROJECT_SOURCES})
