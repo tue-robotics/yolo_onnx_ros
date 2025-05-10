@@ -24,7 +24,7 @@ namespace Ort
 // Definition: Flattened image to blob (and normalizaed) for deep learning inference. Also reorganize from HWC to CHW.
 // Note: Not in the header file since it is not used outside of this file.
 template<typename T>
-char* BlobFromImage(cv::Mat& iImg, T& iBlob) {
+char* BlobFromImage(const cv::Mat& iImg, T& iBlob) {
     int channels = iImg.channels();
     int imgHeight = iImg.rows;
     int imgWidth = iImg.cols;
@@ -44,7 +44,7 @@ char* BlobFromImage(cv::Mat& iImg, T& iBlob) {
 }
 
 
-char* YOLO_V8::PreProcess(cv::Mat& iImg, std::vector<int> iImgSize, cv::Mat& oImg)
+char* YOLO_V8::PreProcess(const cv::Mat& iImg, std::vector<int> iImgSize, cv::Mat& oImg)
 {
     if (iImg.channels() == 3)
     {
@@ -169,7 +169,7 @@ const char* YOLO_V8::CreateSession(DL_INIT_PARAM& iParams) {
 }
 
 
-const char* YOLO_V8::RunSession(cv::Mat& iImg, std::vector<DL_RESULT>& oResult) {
+const char* YOLO_V8::RunSession(const cv::Mat& iImg, std::vector<DL_RESULT>& oResult) {
 #ifdef benchmark
     clock_t starttime_1 = clock();
 #endif // benchmark
@@ -199,7 +199,7 @@ const char* YOLO_V8::RunSession(cv::Mat& iImg, std::vector<DL_RESULT>& oResult) 
 
 
 template<typename N>
-char* YOLO_V8::TensorProcess(clock_t& starttime_1, cv::Mat& iImg, N& blob, std::vector<int64_t>& inputNodeDims,
+char* YOLO_V8::TensorProcess(clock_t& starttime_1, const cv::Mat& iImg, N& blob, std::vector<int64_t>& inputNodeDims,
     std::vector<DL_RESULT>& oResult) {
     Ort::Value inputTensor = Ort::Value::CreateTensor<typename std::remove_pointer<N>::type>(
         Ort::MemoryInfo::CreateCpu(OrtDeviceAllocator, OrtMemTypeCPU), blob, 3 * imgSize.at(0) * imgSize.at(1),
