@@ -9,7 +9,12 @@ YOLO_V8::YOLO_V8() {
 
 
 YOLO_V8::~YOLO_V8() {
-    delete session;
+    for (auto& name : inputNodeNames) {
+        delete[] name;
+    }
+    for (auto& name : outputNodeNames) {
+        delete[] name;
+    }
 }
 
 #ifdef USE_CUDA
@@ -95,6 +100,19 @@ char* YOLO_V8::PreProcess(const cv::Mat& iImg, std::vector<int> iImgSize, cv::Ma
 
 const char* YOLO_V8::CreateSession(DL_INIT_PARAM& iParams) {
     const char* Ret = RET_OK;
+    if (session) {
+
+        // Clear node names
+        for (auto& name : inputNodeNames) {
+            delete[] name;
+        }
+        inputNodeNames.clear();
+
+        for (auto& name : outputNodeNames) {
+            delete[] name;
+        }
+        outputNodeNames.clear();
+    }
     std::regex pattern("[\u4e00-\u9fa5]");
     bool result = std::regex_search(iParams.modelPath, pattern);
     if (result)
@@ -132,7 +150,7 @@ const char* YOLO_V8::CreateSession(DL_INIT_PARAM& iParams) {
         const char* modelPath = iParams.modelPath.c_str();
 #endif // _WIN32
 
-        session = new Ort::Session(env, modelPath, sessionOption);
+        session = std::make_unique<Ort::Session>(env, modelPath, sessionOption);
         Ort::AllocatorWithDefaultOptions allocator;
         size_t inputNodesNum = session->GetInputCount();
         for (size_t i = 0; i < inputNodesNum; i++)
