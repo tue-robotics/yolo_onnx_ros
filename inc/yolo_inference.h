@@ -80,7 +80,7 @@ public:
 
 private:
     Ort::Env env;
-    Ort::Session* session;
+    std::unique_ptr<Ort::Session> session;
     bool cudaEnable;
     Ort::RunOptions options;
     std::vector<const char*> inputNodeNames;

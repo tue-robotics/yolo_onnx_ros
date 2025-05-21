@@ -5,7 +5,7 @@
 #include <fstream>
 #include <random>
 
-void Detector(YOLO_V8*& p) {
+void Detector(std::unique_ptr<YOLO_V8>& p) {
     std::filesystem::path current_path = std::filesystem::current_path();
     std::filesystem::path imgs_path = current_path / "images";
     for (auto& i : std::filesystem::directory_iterator(imgs_path))
@@ -58,7 +58,7 @@ void Detector(YOLO_V8*& p) {
 }
 
 
-void Classifier(YOLO_V8*& p)
+void Classifier(std::unique_ptr<YOLO_V8>& p)
 {
     std::filesystem::path current_path = std::filesystem::current_path();
     std::filesystem::path imgs_path = current_path;// / "images"
@@ -97,7 +97,7 @@ void Classifier(YOLO_V8*& p)
 
 
 
-int ReadCocoYaml(YOLO_V8*& p) {
+int ReadCocoYaml(std::unique_ptr<YOLO_V8>& p) {
     // Open the YAML file
     std::ifstream file("coco.yaml");
     if (!file.is_open())
@@ -148,7 +148,9 @@ int ReadCocoYaml(YOLO_V8*& p) {
 
 void DetectTest()
 {
-    YOLO_V8* yoloDetector = new YOLO_V8;
+    //YOLO_V8* yoloDetector = new YOLO_V8;
+    std::unique_ptr<YOLO_V8> yoloDetector = std::make_unique<YOLO_V8>();
+
     ReadCocoYaml(yoloDetector);
     DL_INIT_PARAM params;
     params.rectConfidenceThreshold = 0.1;
@@ -177,7 +179,7 @@ void DetectTest()
 
 void ClsTest()
 {
-    YOLO_V8* yoloDetector = new YOLO_V8;
+    std::unique_ptr<YOLO_V8> yoloDetector = std::make_unique<YOLO_V8>();
     std::string model_path = "cls.onnx";
     ReadCocoYaml(yoloDetector);
     DL_INIT_PARAM params{ model_path, YOLO_CLS, {224, 224} };
