@@ -2,19 +2,14 @@
 #include <regex>
 
 #define benchmark
-#define min(a,b)            (((a) < (b)) ? (a) : (b))
-YOLO_V8::YOLO_V8() {
+#define min(a, b) (((a) < (b)) ? (a) : (b))
 
+YOLO_V8::YOLO_V8()
+{
 }
 
-
-YOLO_V8::~YOLO_V8() {
-    for (auto& name : inputNodeNames) {
-        delete[] name;
-    }
-    for (auto& name : outputNodeNames) {
-        delete[] name;
-    }
+YOLO_V8::~YOLO_V8()
+{
 }
 
 #ifdef USE_CUDA
@@ -25,9 +20,14 @@ namespace Ort
 }
 #endif
 
-
-// Definition: Flattened image to blob (and normalizaed) for deep learning inference. Also reorganize from HWC to CHW.
-// Note: Not in the header file since it is not used outside of this file.
+/**
+ * @brief Flattened image to blob (and normalized) for deep learning inference. Also reorganize from HWC to CHW.
+ *
+ * @tparam T
+ * @param iImg
+ * @param iBlob
+ * @return char*
+ */
 template<typename T>
 char* BlobFromImage(const cv::Mat& iImg, T& iBlob) {
     int channels = iImg.channels();
@@ -66,7 +66,7 @@ char* YOLO_V8::PreProcess(const cv::Mat& iImg, std::vector<int> iImgSize, cv::Ma
     case YOLO_DETECT_V8:
     case YOLO_POSE:
     case YOLO_DETECT_V8_HALF:
-    case YOLO_POSE_V8_HALF://LetterBox
+    case YOLO_POSE_V8_HALF: // LetterBox and Top Left Crop
     {
         if (iImg.cols >= iImg.rows)
         {
@@ -83,7 +83,7 @@ char* YOLO_V8::PreProcess(const cv::Mat& iImg, std::vector<int> iImgSize, cv::Ma
         oImg = tempImg;
         break;
     }
-    case YOLO_CLS://CenterCrop
+    case YOLO_CLS: // CenterCrop
     {
         int h = iImg.rows;
         int w = iImg.cols;
@@ -100,9 +100,9 @@ char* YOLO_V8::PreProcess(const cv::Mat& iImg, std::vector<int> iImgSize, cv::Ma
 
 const char* YOLO_V8::CreateSession(DL_INIT_PARAM& iParams) {
     const char* Ret = RET_OK;
-    if (session) {
-
-        // Clear node names
+    if (session)
+    {
+        // Clear node names from previous declaration
         for (auto& name : inputNodeNames) {
             delete[] name;
         }
@@ -117,7 +117,7 @@ const char* YOLO_V8::CreateSession(DL_INIT_PARAM& iParams) {
     bool result = std::regex_search(iParams.modelPath, pattern);
     if (result)
     {
-        Ret = "[YOLO_V8]:Your model path is error.Change your model path without chinese characters.";
+        Ret = "[YOLO_V8]:Your model path is error. Change your model path without chinese characters.";
         std::cout << Ret << std::endl;
         return Ret;
     }
@@ -140,16 +140,7 @@ const char* YOLO_V8::CreateSession(DL_INIT_PARAM& iParams) {
         sessionOption.SetIntraOpNumThreads(iParams.intraOpNumThreads);
         sessionOption.SetLogSeverityLevel(iParams.logSeverityLevel);
 
-#ifdef _WIN32
-        int ModelPathSize = MultiByteToWideChar(CP_UTF8, 0, iParams.modelPath.c_str(), static_cast<int>(iParams.modelPath.length()), nullptr, 0);
-        wchar_t* wide_cstr = new wchar_t[ModelPathSize + 1];
-        MultiByteToWideChar(CP_UTF8, 0, iParams.modelPath.c_str(), static_cast<int>(iParams.modelPath.length()), wide_cstr, ModelPathSize);
-        wide_cstr[ModelPathSize] = L'\0';
-        const wchar_t* modelPath = wide_cstr;
-#else
-        const char* modelPath = iParams.modelPath.c_str();
-#endif // _WIN32
-
+        const char *modelPath = iParams.modelPath.c_str();
         session = std::make_unique<Ort::Session>(env, modelPath, sessionOption);
         Ort::AllocatorWithDefaultOptions allocator;
         size_t inputNodesNum = session->GetInputCount();
