@@ -1,6 +1,6 @@
 #include <iostream>
 #include <iomanip>
-#include "yolo_inference.h"
+#include "yolo_onnx_ros/yolo_inference.h"
 #include <filesystem>
 #include <fstream>
 #include <random>
