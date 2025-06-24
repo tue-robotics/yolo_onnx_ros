@@ -68,17 +68,18 @@ public:
 
     const char* RunSession(const cv::Mat& iImg, std::vector<DL_RESULT>& oResult);
 
+    std::vector<std::string> classes{};
+
+private:
     char* WarmUpSession();
 
+    // Note: The logic is on the .cpp file since its a private method.
     template<typename N>
     char* TensorProcess(clock_t& starttime_1, const cv::Mat& iImg, N& blob, std::vector<int64_t>& inputNodeDims,
         std::vector<DL_RESULT>& oResult);
 
     char* PreProcess(const cv::Mat& iImg, std::vector<int> iImgSize, cv::Mat& oImg);
 
-    std::vector<std::string> classes{};
-
-private:
     Ort::Env env;
     std::unique_ptr<Ort::Session> session;
     bool cudaEnable;
