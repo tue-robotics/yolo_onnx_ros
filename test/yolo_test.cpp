@@ -11,7 +11,8 @@ TEST(YoloInferenceTest, ObjectCreationTest) {
         YOLO_V8 yolo;
     });
 }
-// Import Yolo Inference header
+
+// Add a test to check if the PreProcess function works correctly
 TEST (YoloInferenceTest, PreProcessTest) {
     YOLO_V8 yolo;
     cv::Mat img = cv::Mat::ones(640, 640, CV_8UC3) * 255; // Create a white image
@@ -23,6 +24,8 @@ TEST (YoloInferenceTest, PreProcessTest) {
     EXPECT_EQ(result, nullptr) << "PreProcess should return nullptr (RET_OK) on success";
     EXPECT_EQ(processedImg.size(), cv::Size(640, 640)) << "Processed image size should match input size";
 }
+
+// Add a test to check if the CreateSession function works correctly
 TEST (YoloInferenceTest, CreateSessionTest) {
     std::unique_ptr<YOLO_V8> yolo = std::make_unique<YOLO_V8>();
     DL_INIT_PARAM params;
@@ -37,6 +40,7 @@ TEST (YoloInferenceTest, CreateSessionTest) {
 
     EXPECT_EQ(result, nullptr) << "CreateSession should return nullptr (RET_OK) on success";
 }
+// Add a test to check if the RunSession function works correctly
 TEST (YoloInferenceTest, RunSessionTest) {
     std::unique_ptr<YOLO_V8> yolo = std::make_unique<YOLO_V8>();
     DL_INIT_PARAM params;
@@ -50,7 +54,7 @@ TEST (YoloInferenceTest, RunSessionTest) {
     const char* createResult = yolo->CreateSession(params);
     EXPECT_EQ(createResult, nullptr) << "CreateSession should return nullptr (RET_OK) on success";
 
-    cv::Mat img = cv::Mat::ones(640, 640, CV_8UC3) * 255; // Create a white image
+    cv::Mat img = cv::Mat::ones(800, 800, CV_8UC3) * 255; // Create a white image
     std::vector<DL_RESULT> results;
 
     const char* runResult = yolo->RunSession(img, results);
