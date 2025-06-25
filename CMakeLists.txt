@@ -50,7 +50,7 @@ target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBS} ${ONNXRUNTIME_ROOT}/lib/lib
 
 # Test executable
 add_executable(${PROJECT_NAME}_test
-    test/tst_yolo_test.cpp
+    test/yolo_test.cpp
     src/yolo_inference.cpp  # Include only the source files needed for testing (not main.cpp)
 )
 
