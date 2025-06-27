@@ -83,16 +83,16 @@ char* YOLO_V8::PreProcess(const cv::Mat& iImg, std::vector<int> iImgSize, cv::Ma
         oImg = tempImg;
         break;
     }
-    case YOLO_CLS: // CenterCrop
-    {
-        int h = iImg.rows;
-        int w = iImg.cols;
-        int m = min(h, w);
-        int top = (h - m) / 2;
-        int left = (w - m) / 2;
-        cv::resize(oImg(cv::Rect(left, top, m, m)), oImg, cv::Size(iImgSize.at(0), iImgSize.at(1)));
-        break;
-    }
+    // case YOLO_CLS: // CenterCrop
+    // {
+    //     int h = iImg.rows;
+    //     int w = iImg.cols;
+    //     int m = min(h, w);
+    //     int top = (h - m) / 2;
+    //     int left = (w - m) / 2;
+    //     cv::resize(oImg(cv::Rect(left, top, m, m)), oImg, cv::Size(iImgSize.at(0), iImgSize.at(1)));
+    //     break;
+    // }
     }
     return RET_OK;
 }
@@ -311,29 +311,29 @@ char* YOLO_V8::TensorProcess(clock_t& starttime_1, const cv::Mat& iImg, N& blob,
 
         break;
     }
-    case YOLO_CLS:
-    case YOLO_CLS_HALF:
-    {
-        cv::Mat rawData;
-        if (modelType == YOLO_CLS) {
-            // FP32
-            rawData = cv::Mat(1, this->classes.size(), CV_32F, output);
-        } else {
-            // FP16
-            rawData = cv::Mat(1, this->classes.size(), CV_16F, output);
-            rawData.convertTo(rawData, CV_32F);
-        }
-        float *data = (float *) rawData.data;
+    // case YOLO_CLS:
+    // case YOLO_CLS_HALF:
+    // {
+    //     cv::Mat rawData;
+    //     if (modelType == YOLO_CLS) {
+    //         // FP32
+    //         rawData = cv::Mat(1, this->classes.size(), CV_32F, output);
+    //     } else {
+    //         // FP16
+    //         rawData = cv::Mat(1, this->classes.size(), CV_16F, output);
+    //         rawData.convertTo(rawData, CV_32F);
+    //     }
+    //     float *data = (float *) rawData.data;
 
-        DL_RESULT result;
-        for (int i = 0; i < this->classes.size(); i++)
-        {
-            result.classId = i;
-            result.confidence = data[i];
-            oResult.push_back(result);
-        }
-        break;
-    }
+    //     DL_RESULT result;
+    //     for (int i = 0; i < this->classes.size(); i++)
+    //     {
+    //         result.classId = i;
+    //         result.confidence = data[i];
+    //         oResult.push_back(result);
+    //     }
+    //     break;
+    // }
     default:
         std::cout << "[YOLO_V8]: " << "Not support model type." << std::endl;
     }
