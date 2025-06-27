@@ -2,7 +2,9 @@
 
 <img alt="C++" src="https://img.shields.io/badge/C++-17-blue.svg?style=flat&logo=c%2B%2B"> <img alt="Onnx-runtime" src="https://img.shields.io/badge/OnnxRuntime-717272.svg?logo=Onnx&logoColor=white">
 
-This example demonstrates how to perform inference using YOLOv8 in C++ with ONNX Runtime and OpenCV's API.
+https://github.com/ultralytics/ultralytics/tree/main/examples/YOLOv8-ONNXRuntime-CPP
+
+This algorithm is inspired by Ultralitics implementation (see link above) to perform inference using YOLOv8 in C++ with ONNX Runtime and OpenCV's API.
 
 ## Benefits ✨
 
@@ -57,12 +59,12 @@ In order to run example, you also need to download coco.yaml. You can download t
 | OpenCV                           | >=4.0.0       |
 | C++ Standard                     | >=17          |
 | Cmake                            | >=3.5         |
-| Cuda (Optional)                  | >=11.4 \<12.0 |
-| cuDNN (Cuda required)            | =8            |
+| Cuda (Optional)                  |  =12.8        |
+| cuDNN (Cuda required)            | =9            |
 
 Note: The dependency on C++17 is due to the usage of the C++17 filesystem feature.
 
-Note (2): Due to ONNX Runtime, we need to use CUDA 11 and cuDNN 8. Keep in mind that this requirement might change in the future.
+Note (2): Due to ONNX Runtime, we need to use CUDA 12.8 and cuDNN 9. Keep in mind that this requirement might change in the future.
 
 ## Build 🛠️
 
@@ -87,12 +89,8 @@ Note (2): Due to ONNX Runtime, we need to use CUDA 11 and cuDNN 8. Keep in mind 
    If you encounter an error indicating that the `ONNXRUNTIME_ROOT` variable is not set correctly, you can resolve this by building the project using the appropriate command tailored to your system.
 
    ```console
-   # compiled in a win32 system
-   cmake -D WIN32=TRUE ..
    # compiled in a linux system
    cmake -D LINUX=TRUE ..
-   # compiled in an apple system
-   cmake -D APPLE=TRUE ..
    ```
 
 5. Build the project:
