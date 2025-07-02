@@ -1,11 +1,11 @@
 #include <iostream>
 #include <iomanip>
-#include "yolo_inference.h"
+#include "inference.h"
 #include <filesystem>
 #include <fstream>
 #include <random>
 
-void Detector(std::unique_ptr<YOLO_V8>& p, const cv::Mat& img) {
+std::vector<DL_RESULT> DetectObjects(std::unique_ptr<YOLO_V8>& p, const cv::Mat& img) {
 
             std::vector<DL_RESULT> res;
             p->RunSession(img, res);
@@ -42,10 +42,11 @@ void Detector(std::unique_ptr<YOLO_V8>& p, const cv::Mat& img) {
 
 
             }
-            // std::cout << "Press any key to exit" << std::endl;
-            // cv::imshow("Result of Detection", img);
-            // cv::waitKey(0);
-            // cv::destroyAllWindows();
+            std::cout << "Press any key to exit" << std::endl;
+            cv::imshow("Result of Detection", img);
+            cv::waitKey(0);
+            cv::destroyAllWindows();
+            return res;
     }
 
 
@@ -162,8 +163,9 @@ std::vector<DL_RESULT> Detect(const cv::Mat& img)
     params.cudaEnable = false;
 
 #endif
+    // TODO: THIS IS UNOPTIMAL IF YOU PASS MULTIPLE IMAGES.
     yoloDetector->CreateSession(params);
-    std::vector<DL_RESULT> results = Detector(yoloDetector, img);
+    std::vector<DL_RESULT> results = DetectObjects(yoloDetector, img);
     return results;
 }
 
@@ -177,9 +179,3 @@ std::vector<DL_RESULT> Detect(const cv::Mat& img)
 //     yoloDetector->CreateSession(params);
 //     Classifier(yoloDetector);
 // }
-
-
-int main()
-{
-    Detect();
-}

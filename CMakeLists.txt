@@ -39,7 +39,7 @@ include_directories(/usr/local/cuda/include)
 set(PROJECT_SOURCES
         src/main.cpp
         src/yolo_inference.cpp
-)
+        src/inference.cpp)
 
 # Main executable (without tests)
 add_executable(${PROJECT_NAME} ${PROJECT_SOURCES})
