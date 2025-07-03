@@ -137,36 +137,33 @@ int ReadCocoYaml(std::unique_ptr<YOLO_V8>& p) {
     return 0;
 }
 
-
-std::vector<DL_RESULT> Detect(const cv::Mat& img)
+std::unique_ptr<YOLO_V8> Initialize()
 {
     std::unique_ptr<YOLO_V8> yoloDetector = std::make_unique<YOLO_V8>();
 
     ReadCocoYaml(yoloDetector);
-    DL_INIT_PARAM params;
-    params.rectConfidenceThreshold = 0.1;
-    params.iouThreshold = 0.5;
-    params.modelPath = "yolo11m.onnx";
-    params.imgSize = { 640, 640 };
-#ifdef USE_CUDA
-    params.cudaEnable = true;
+        DL_INIT_PARAM params;
+        params.rectConfidenceThreshold = 0.1;
+        params.iouThreshold = 0.5;
+        params.modelPath = "yolo11m.onnx";
+        params.imgSize = { 640, 640 };
+    #ifdef USE_CUDA
+        params.cudaEnable = true;
 
-    // GPU FP32 inference
-    params.modelType = YOLO_DETECT_V8;
-    // GPU FP16 inference
-    //Note: change fp16 onnx model
-    //params.modelType = YOLO_DETECT_V8_HALF;
+        // GPU FP32 inference
+        params.modelType = YOLO_DETECT_V8;
+        // GPU FP16 inference
+        //Note: change fp16 onnx model
+        //params.modelType = YOLO_DETECT_V8_HALF;
 
-#else
-    // CPU inference
-    params.modelType = YOLO_DETECT_V8;
-    params.cudaEnable = false;
+    #else
+        // CPU inference
+        params.modelType = YOLO_DETECT_V8;
+        params.cudaEnable = false;
 
-#endif
-    // TODO: THIS IS UNOPTIMAL IF YOU PASS MULTIPLE IMAGES.
-    yoloDetector->CreateSession(params);
-    std::vector<DL_RESULT> results = DetectObjects(yoloDetector, img);
-    return results;
+    #endif
+        yoloDetector->CreateSession(params);
+    return yoloDetector;
 }
 
 
