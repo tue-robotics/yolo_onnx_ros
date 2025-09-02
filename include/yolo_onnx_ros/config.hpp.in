@@ -1,0 +1,7 @@
+#ifndef YOLO_ONNX_ROS_CONFIG_HPP_
+#define YOLO_ONNX_ROS_CONFIG_HPP_
+
+//Set which version of the Tree Interface to use
+#define YOLO_ONNX_ROS_CUDA_ENABLED @onnx_yolo_ros_CUDA_ENABLED@
+
+#endif //#define YOLO_ONNX_ROS_CONFIG_HPP_

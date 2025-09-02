@@ -20,16 +20,27 @@ find_package(catkin REQUIRED
 )
 
 
+set(${PROJECT_NAME}_CUDA_ENABLED ${onnxruntime_ros_CUDA_ENABLED})
+if(onnxruntime_ros_CUDA_ENABLED)
+  find_package(CUDAToolkit REQUIRED)
+endif()
+
+configure_file(include/${PROJECT_NAME}/config.hpp.in ${CATKIN_DEVEL_PREFIX}/${CATKIN_GLOBAL_INCLUDE_DESTINATION}/${PROJECT_NAME}/config.hpp)
+# add_custom_target(generate_config_hpp
+#   DEPENDS ${CATKIN_DEVEL_PREFIX}/${CATKIN_GLOBAL_INCLUDE_DESTINATION}/${PROJECT_NAME}/config.hpp
+# )
+
 # ------------------------------------------------------------------------------------------------
 #                                        CATKIN EXPORT
 # ------------------------------------------------------------------------------------------------
 
 catkin_package(
-  INCLUDE_DIRS include
+  INCLUDE_DIRS include ${CATKIN_DEVEL_PREFIX}/${CATKIN_GLOBAL_INCLUDE_DESTINATION}
   LIBRARIES ${PROJECT_NAME}
   CATKIN_DEPENDS
-  DEPENDS OpenCV
+  DEPENDS CUDAToolkit OpenCV
 )
+
 
 # ------------------------------------------------------------------------------------------------
 #                                           BUILD
@@ -37,20 +48,20 @@ catkin_package(
 
 include_directories(
   include
+  ${CATKIN_DEVEL_PREFIX}/${CATKIN_GLOBAL_INCLUDE_DESTINATION}
   SYSTEM
+  ${CUDAToolkit_INCLUDE_DIRS}
   ${OpenCV_INCLUDE_DIRS}
   ${catkin_INCLUDE_DIRS}
 )
 
 # -------------- ONNXRuntime  ------------------#
 
-# -------------- Cuda ------------------#
-add_definitions(-DUSE_CUDA=1)
-
 add_library(${PROJECT_NAME}
   src/yolo_inference.cpp
 )
-target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBRARIES} ${catkin_LIBRARIES})
+# add_dependencies(${PROJECT_NAME} generate_config_hpp)
+target_link_libraries(${PROJECT_NAME} CUDA::toolkit ${OpenCV_LIBRARIES} ${catkin_LIBRARIES})
 
 add_executable(test_${PROJECT_NAME}
   src/main.cpp
@@ -64,6 +75,35 @@ if (WIN32)
             "${ONNXRUNTIME_ROOT}/lib/onnxruntime.dll"
             $<TARGET_FILE_DIR:${PROJECT_NAME}>)
 endif ()
+
+
+# ------------------------------------------------------------------------------------------------
+#                                               INSTALL
+# ------------------------------------------------------------------------------------------------
+
+install(FILES
+  ${CATKIN_DEVEL_PREFIX}/${CATKIN_PACKAGE_INCLUDE_DESTINATION}/config.hpp
+  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+)
+
+install(
+  DIRECTORY include/${PROJECT_NAME}/
+  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+)
+
+install(
+  TARGETS
+    ${PROJECT_NAME}
+  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION}
+)
+
+install(
+  TARGETS
+    ${PROJECT_NAME}
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
 
 # Download https://raw.githubusercontent.com/ultralytics/ultralytics/main/ultralytics/cfg/datasets/coco.yaml
 # and put it in the same folder of the executable file

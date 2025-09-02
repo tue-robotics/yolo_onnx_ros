@@ -1,6 +1,7 @@
 #include <iostream>
 #include <iomanip>
 #include "yolo_onnx_ros/yolo_inference.h"
+#include <yolo_onnx_ros/config.hpp>
 #include <filesystem>
 #include <fstream>
 #include <random>
@@ -76,7 +77,7 @@ void Classifier(std::unique_ptr<YOLO_V8>& p)
             const char* ret = p->RunSession(img, res);
 
             float positionY = 50;
-            for (int i = 0; i < res.size(); i++)
+            for (uint i = 0; i < res.size(); i++)
             {
                 int r = dis(gen);
                 int g = dis(gen);
@@ -157,7 +158,7 @@ void DetectTest()
     params.iouThreshold = 0.5;
     params.modelPath = "yolo11m.onnx";
     params.imgSize = { 640, 640 };
-#ifdef USE_CUDA
+#ifdef YOLO_ONNX_ROS_CUDA_ENABLED
     params.cudaEnable = true;
 
     // GPU FP32 inference
