@@ -1,6 +1,6 @@
 #include <iostream>
 #include <iomanip>
-#include "inference.h"
+#include "detection.h"
 #include <filesystem>
 #include <fstream>
 #include <random>
