@@ -5,9 +5,9 @@
 #include <fstream>
 #include <random>
 
-std::vector<DL_RESULT> DetectObjects(std::unique_ptr<YOLO_V8>& p, const cv::Mat& img) {
+void Detector(std::unique_ptr<YOLO_V8>& p, std::vector<DL_RESULT>& res, const cv::Mat& img) {
 
-            std::vector<DL_RESULT> res;
+
             p->RunSession(img, res);
 
             for (auto& re : res)
@@ -42,12 +42,12 @@ std::vector<DL_RESULT> DetectObjects(std::unique_ptr<YOLO_V8>& p, const cv::Mat&
 
 
             }
-            std::cout << "Press any key to exit" << std::endl;
-            cv::imshow("Result of Detection", img);
-            cv::waitKey(0);
-            cv::destroyAllWindows();
-            return res;
-    }
+            //std::cout << "Press any key to exit" << std::endl;
+            //cv::imshow("Result of Detection", img);
+            //cv::waitKey(0);
+            //cv::destroyAllWindows();
+
+}
 
 
 
@@ -137,14 +137,15 @@ int ReadCocoYaml(std::unique_ptr<YOLO_V8>& p) {
     return 0;
 }
 
-std::unique_ptr<YOLO_V8> Initialize()
+std::tuple<std::unique_ptr<YOLO_V8>, std::vector<DL_RESULT>> Initialize()
 {
     std::unique_ptr<YOLO_V8> yoloDetector = std::make_unique<YOLO_V8>();
-
+    std::vecroet<DL_RESULT> res;
     ReadCocoYaml(yoloDetector);
         DL_INIT_PARAM params;
         params.rectConfidenceThreshold = 0.1;
         params.iouThreshold = 0.5;
+        // Mayve change the model from V11 to V8
         params.modelPath = "yolo11m.onnx";
         params.imgSize = { 640, 640 };
     #ifdef USE_CUDA
@@ -163,7 +164,7 @@ std::unique_ptr<YOLO_V8> Initialize()
 
     #endif
         yoloDetector->CreateSession(params);
-    return yoloDetector;
+    return std::make_tuple(std::move(yoloDetector), std::move(res));
 }
 
 
