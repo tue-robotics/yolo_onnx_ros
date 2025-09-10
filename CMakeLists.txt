@@ -29,7 +29,7 @@ include_directories(${OpenCV_INCLUDE_DIRS})
 
 # -------------- ONNXRuntime  ------------------#
 set(ONNXRUNTIME_VERSION 1.21.0)
-set(ONNXRUNTIME_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../hero_sam/onnxruntime-linux-x64-gpu-1.21.1")
+set(ONNXRUNTIME_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../hero_sam.bak/onnxruntime-linux-x64-gpu-1.21.1")
 include_directories(${ONNXRUNTIME_ROOT}/include)
 
 # -------------- Cuda ------------------#
@@ -43,7 +43,7 @@ set(PROJECT_SOURCES
 
 # Main executable (without tests)
 add_executable(${PROJECT_NAME} ${PROJECT_SOURCES})
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/inc)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 # Link libraries for main executable
 target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBS} ${ONNXRUNTIME_ROOT}/lib/libonnxruntime.so)
@@ -54,7 +54,7 @@ add_executable(${PROJECT_NAME}_test
     src/yolo_inference.cpp  # Include only the source files needed for testing (not main.cpp)
 )
 
-target_include_directories(${PROJECT_NAME}_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/inc)
+target_include_directories(${PROJECT_NAME}_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 # Link libraries for test executable
 target_link_libraries(${PROJECT_NAME}_test
@@ -69,10 +69,10 @@ add_test(NAME yolo_tests COMMAND ${PROJECT_NAME}_test)
 
 # Download https://raw.githubusercontent.com/ultralytics/ultralytics/main/ultralytics/cfg/datasets/coco.yaml
 # and put it in the same folder of the executable file
-configure_file(../hero_sam/yolo_inference/data/coco.yaml ${CMAKE_CURRENT_BINARY_DIR}/coco.yaml COPYONLY)
+configure_file(/home/amigo/Documents/repos/hero_sam.bak/yolo_inference/data/coco.yaml ${CMAKE_CURRENT_BINARY_DIR}/coco.yaml COPYONLY)
 
 # Copy yolov8n.onnx file to the same folder of the executable file
-configure_file(../hero_sam/yolo_inference/model/yolo11m.onnx ${CMAKE_CURRENT_BINARY_DIR}/yolo11m.onnx COPYONLY)
+configure_file(/home/amigo/Documents/repos/hero_sam.bak/yolo_inference/model/yolo11m.onnx ${CMAKE_CURRENT_BINARY_DIR}/yolo11m.onnx COPYONLY)
 
 # Create folder name images in the same folder of the executable file
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD

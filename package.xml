@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<?xml-model
+  href="http://download.ros.org/schema/package_format3.xsd"
+  schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>yolo_onnx_ros</name>
+  <version>0.0.0</version>
+  <description>Yolo inference</description>
+
+  <maintainer email="iasonth95@gmail.com">Iason Theodorou</maintainer>
+
+  <license>ToDo</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <build_depend>libopencv-dev</build_depend>
+  <exec_depend>libopencv-dev</exec_depend>
+  <build_depend>onnxruntime_ros</build_depend>
+  <exec_depend>onnxruntime_ros</exec_depend>
+
+  <test_depend>catkin_lint_cmake</test_depend>
+
+  <doc_depend>doxygen</doc_depend>
+
+  <export>
+    <rosdoc config="rosdoc.yaml" />
+  </export>
+
+</package>
