@@ -5,11 +5,12 @@
 #include <fstream>
 #include <random>
 #include "yolo_inference.h"
+//#define LOGGING
 std::vector<DL_RESULT> Detector(std::unique_ptr<YOLO_V8>& p, const cv::Mat& img) {
 
             std::vector<DL_RESULT> res;
             p->RunSession(img, res);
-
+        #ifdef LOGGING
             for (auto& re : res)
             {
                 cv::RNG rng(cv::getTickCount());
@@ -39,13 +40,12 @@ std::vector<DL_RESULT> Detector(std::unique_ptr<YOLO_V8>& p, const cv::Mat& img)
                     cv::Scalar(0, 0, 0),
                     2
                 );
-
-
-            }
+                }
             std::cout << "Press any key to exit" << std::endl;
             cv::imshow("Result of Detection", img);
             cv::waitKey(0);
             cv::destroyAllWindows();
+        #endif
             return std::move(res);
 
 }
@@ -92,7 +92,7 @@ std::vector<DL_RESULT> Detector(std::unique_ptr<YOLO_V8>& p, const cv::Mat& img)
 
 int ReadCocoYaml(std::unique_ptr<YOLO_V8>& p) {
     // Open the YAML file
-    std::ifstream file("coco.yaml");
+    std::ifstream file("/home/amigo/Documents/repos/hero_sam.bak/yolo_inference/data/coco.yaml");
     if (!file.is_open())
     {
         std::cerr << "Failed to open file" << std::endl;
@@ -146,7 +146,7 @@ std::tuple<std::unique_ptr<YOLO_V8>, DL_INIT_PARAM> Initialize()
         params.rectConfidenceThreshold = 0.1;
         params.iouThreshold = 0.5;
         // Mayve change the model from V11 to V8
-        params.modelPath = "yolo11m.onnx";
+        params.modelPath = "/home/amigo/Documents/repos/yolo_onnx_ros/build/yolo11m.onnx";
         params.imgSize = { 640, 640 };
     #ifdef USE_CUDA
         params.cudaEnable = true;
