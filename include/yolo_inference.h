@@ -61,8 +61,8 @@ public:
     const char* CreateSession(DL_INIT_PARAM& iParams);
 
     const char* RunSession(const cv::Mat& iImg, std::vector<DL_RESULT>& oResult);
-
-    char* PreProcess(const cv::Mat& iImg, std::vector<int> iImgSize, cv::Mat& oImg);
+    // imgSize is [width, height]
+    char* PreProcess(const cv::Mat& iImg, const std::vector<int>& iImgSize, cv::Mat& oImg);
 
     std::vector<std::string> classes{};
 
