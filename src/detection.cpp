@@ -4,10 +4,10 @@
 #include <filesystem>
 #include <fstream>
 #include <random>
+#include "yolo_inference.h"
+std::vector<DL_RESULT> Detector(std::unique_ptr<YOLO_V8>& p, const cv::Mat& img) {
 
-void Detector(std::unique_ptr<YOLO_V8>& p, std::vector<DL_RESULT>& res, const cv::Mat& img) {
-
-
+            std::vector<DL_RESULT> res;
             p->RunSession(img, res);
 
             for (auto& re : res)
@@ -42,10 +42,11 @@ void Detector(std::unique_ptr<YOLO_V8>& p, std::vector<DL_RESULT>& res, const cv
 
 
             }
-            //std::cout << "Press any key to exit" << std::endl;
-            //cv::imshow("Result of Detection", img);
-            //cv::waitKey(0);
-            //cv::destroyAllWindows();
+            std::cout << "Press any key to exit" << std::endl;
+            cv::imshow("Result of Detection", img);
+            cv::waitKey(0);
+            cv::destroyAllWindows();
+            return std::move(res);
 
 }
 
@@ -137,10 +138,9 @@ int ReadCocoYaml(std::unique_ptr<YOLO_V8>& p) {
     return 0;
 }
 
-std::tuple<std::unique_ptr<YOLO_V8>, std::vector<DL_RESULT>> Initialize()
+std::tuple<std::unique_ptr<YOLO_V8>, DL_INIT_PARAM> Initialize()
 {
     std::unique_ptr<YOLO_V8> yoloDetector = std::make_unique<YOLO_V8>();
-    std::vecroet<DL_RESULT> res;
     ReadCocoYaml(yoloDetector);
         DL_INIT_PARAM params;
         params.rectConfidenceThreshold = 0.1;
@@ -164,7 +164,7 @@ std::tuple<std::unique_ptr<YOLO_V8>, std::vector<DL_RESULT>> Initialize()
 
     #endif
         yoloDetector->CreateSession(params);
-    return std::make_tuple(std::move(yoloDetector), std::move(res));
+    return std::make_tuple(std::move(yoloDetector), std::move(params));
 }
 
 
