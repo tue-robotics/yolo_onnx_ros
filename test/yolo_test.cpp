@@ -1,4 +1,5 @@
 #include "yolo_inference.h"
+#include "detection.h"
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 #include <opencv2/opencv.hpp>
@@ -19,14 +20,9 @@ protected:
         cv::randu(testImage_realistic, cv::Scalar(0, 0, 0), cv::Scalar(255, 255, 255));
 
         // Setup common parameters
-        params.modelPath = "yolo11m.onnx";
-        params.modelType = YOLO_DETECT_V8;
-        params.imgSize = { 640, 640 };
-        params.rectConfidenceThreshold = 0.6;
-        params.iouThreshold = 0.5;
-        params.cudaEnable = false;
+        std::tie(yolo, params) = Initialize();
 
-        yolo = std::make_unique<YOLO_V8>();
+
         NonSquareImgSize = { testImage_800x600.cols, testImage_800x600.rows };
     }
 
@@ -41,8 +37,9 @@ protected:
     cv::Mat testImage_800x600;
     cv::Mat testImage_realistic;
     DL_INIT_PARAM params;
-    std::unique_ptr<YOLO_V8> yolo;
     std::vector<int> NonSquareImgSize;
+    std::unique_ptr<YOLO_V8> yolo;
+    std::vector<DL_RESULT> results;
 };
 
 TEST_F(YoloInferenceTest, ObjectCreation)
@@ -91,8 +88,6 @@ TEST_F(YoloInferenceTest, FullInferencePipeline)
     const char* createResult = yolo->CreateSession(params);
     ASSERT_EQ(createResult, nullptr) << "Session creation must succeed for inference test";
 
-    // Then run inference
-    std::vector<DL_RESULT> results;
     const char* runResult = yolo->RunSession(testImage_realistic, results);
 
     EXPECT_EQ(runResult, nullptr) << "RunSession should succeed";

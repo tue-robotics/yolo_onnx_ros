@@ -52,6 +52,7 @@ target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBS} ${ONNXRUNTIME_ROOT}/lib/lib
 add_executable(${PROJECT_NAME}_test
     test/yolo_test.cpp
     src/yolo_inference.cpp  # Include only the source files needed for testing (not main.cpp)
+    src/detection.cpp
 )
 
 target_include_directories(${PROJECT_NAME}_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
