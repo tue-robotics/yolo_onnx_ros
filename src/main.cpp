@@ -1,6 +1,6 @@
 #include <iostream>
 #include <iomanip>
-#include "detection.h"
+#include "yolo_onnx_ros/detection.hpp"
 #include <filesystem>
 #include <fstream>
 #include <random>

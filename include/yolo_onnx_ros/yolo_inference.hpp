@@ -1,6 +1,6 @@
 #pragma once
 
-#define    RET_OK nullptr
+#define RET_OK nullptr
 
 #include <string>
 #include <vector>
@@ -8,7 +8,7 @@
 #include <opencv2/opencv.hpp>
 #include "onnxruntime_cxx_api.h"
 
-#ifdef USE_CUDA
+#ifdef YOLO_ONNX_ROS_CUDA_ENABLED
 #include <cuda_fp16.h>
 #endif
 
@@ -53,9 +53,9 @@ typedef struct _DL_RESULT
 class YOLO_V8
 {
 public:
-    YOLO_V8();
+    YOLO_V8() = default;
 
-    ~YOLO_V8();
+    ~YOLO_V8() = default;
 
 public:
     const char* CreateSession(DL_INIT_PARAM& iParams);
@@ -72,19 +72,19 @@ private:
     // Note: The logic is on the .cpp file since its a private method.
     template<typename N>
     char* TensorProcess(clock_t& starttime_1, const cv::Mat& iImg, N& blob, std::vector<int64_t>& inputNodeDims,
-        std::vector<DL_RESULT>& oResult);
+                        std::vector<DL_RESULT>& oResult);
 
 
-    Ort::Env env;
-    std::unique_ptr<Ort::Session> session;
-    bool cudaEnable;
+    Ort::Env env_;
+    std::unique_ptr<Ort::Session> session_;
+    bool cudaEnable_;
     Ort::RunOptions options;
-    std::vector<const char*> inputNodeNames;
-    std::vector<const char*> outputNodeNames;
+    std::vector<const char*> inputNodeNames_;
+    std::vector<const char*> outputNodeNames_;
 
-    MODEL_TYPE modelType;
-    std::vector<int> imgSize;
-    float rectConfidenceThreshold;
-    float iouThreshold;
-    float resizeScales;//letterbox scale
+    MODEL_TYPE modelType_;
+    std::vector<int> imgSize_;
+    float rectConfidenceThreshold_;
+    float iouThreshold_;
+    float resizeScales_; //letterbox scale
 };

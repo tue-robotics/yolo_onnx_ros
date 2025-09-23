@@ -10,7 +10,6 @@
   <maintainer email="iasonth95@gmail.com">Iason Theodorou</maintainer>
 
   <license>ToDo</license>
-  <depend>roscpp</depend>
 
   <buildtool_depend>catkin</buildtool_depend>
 

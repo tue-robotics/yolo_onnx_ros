@@ -1,11 +1,9 @@
-#include <iostream>
-#include <iomanip>
-#include "detection.h"
-#include <filesystem>
+#include "yolo_onnx_ros/detection.hpp"
 #include <fstream>
-#include <random>
-#include "yolo_inference.h"
-//#define LOGGING
+#include <iomanip>
+#include <iostream>
+
+// #define LOGGING
 std::vector<DL_RESULT> Detector(std::unique_ptr<YOLO_V8>& p, const cv::Mat& img) {
 
             std::vector<DL_RESULT> res;
@@ -46,7 +44,7 @@ std::vector<DL_RESULT> Detector(std::unique_ptr<YOLO_V8>& p, const cv::Mat& img)
             cv::waitKey(0);
             cv::destroyAllWindows();
         #endif
-            return std::move(res);
+            return res;
 
 }
 
@@ -92,7 +90,7 @@ std::vector<DL_RESULT> Detector(std::unique_ptr<YOLO_V8>& p, const cv::Mat& img)
 
 int ReadCocoYaml(std::unique_ptr<YOLO_V8>& p) {
     // Open the YAML file
-    std::ifstream file("/home/amigo/Documents/repos/hero_sam.bak/yolo_inference/data/coco.yaml");
+    std::ifstream file("data/coco.yaml");
     if (!file.is_open())
     {
         std::cerr << "Failed to open file" << std::endl;
@@ -146,9 +144,9 @@ std::tuple<std::unique_ptr<YOLO_V8>, DL_INIT_PARAM> Initialize()
         params.rectConfidenceThreshold = 0.1;
         params.iouThreshold = 0.5;
         // Mayve change the model from V11 to V8
-        params.modelPath = "/home/amigo/Documents/repos/yolo_onnx_ros/build/yolo11m.onnx";
+        params.modelPath = "yolo11m.onnx";
         params.imgSize = { 640, 640 };
-    #ifdef USE_CUDA
+    #ifdef YOLO_ONNX_ROS_CUDA_ENABLED
         params.cudaEnable = true;
 
         // GPU FP32 inference
