@@ -1,4 +1,6 @@
 #include "yolo_onnx_ros/detection.hpp"
+#include <yolo_onnx_ros/config.hpp>
+
 #include <fstream>
 #include <iomanip>
 #include <iostream>

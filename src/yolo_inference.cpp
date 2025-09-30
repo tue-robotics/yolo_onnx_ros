@@ -199,7 +199,7 @@ const char* YOLO_V8::RunSession(const cv::Mat& iImg, std::vector<DL_RESULT>& oRe
 #ifdef YOLO_ONNX_ROS_CUDA_ENABLED
         half* blob = new half[processedImg.total() * 3];
         BlobFromImage(processedImg, blob);
-        std::vector<int64_t> inputNodeDims = { 1, 3, imgSize.at(1), imgSize.at(0) };
+        std::vector<int64_t> inputNodeDims = { 1, 3, imgSize_.at(1), imgSize_.at(0) };
         TensorProcess(starttime_1, iImg, blob, inputNodeDims, oResult);
 #endif
     }
@@ -372,13 +372,13 @@ char* YOLO_V8::WarmUpSession() {
 #ifdef YOLO_ONNX_ROS_CUDA_ENABLED
         half* blob = new half[iImg.total() * 3];
         BlobFromImage(processedImg, blob);
-        std::vector<int64_t> YOLO_input_node_dims = { 1, 3, imgSize.at(1), imgSize.at(0) };
-        Ort::Value input_tensor = Ort::Value::CreateTensor<half>(Ort::MemoryInfo::CreateCpu(OrtDeviceAllocator, OrtMemTypeCPU), blob, 3 * imgSize.at(0) * imgSize.at(1), YOLO_input_node_dims.data(), YOLO_input_node_dims.size());
-        auto output_tensors = session->Run(options, inputNodeNames.data(), &input_tensor, 1, outputNodeNames.data(), outputNodeNames.size());
+        std::vector<int64_t> YOLO_input_node_dims = { 1, 3, imgSize_.at(1), imgSize_.at(0) };
+        Ort::Value input_tensor = Ort::Value::CreateTensor<half>(Ort::MemoryInfo::CreateCpu(OrtDeviceAllocator, OrtMemTypeCPU), blob, 3 * imgSize_.at(0) * imgSize_.at(1), YOLO_input_node_dims.data(), YOLO_input_node_dims.size());
+        auto output_tensors = session_->Run(options, inputNodeNames_.data(), &input_tensor, 1, outputNodeNames_.data(), outputNodeNames_.size());
         delete[] blob;
         clock_t starttime_4 = clock();
         double post_process_time = (double)(starttime_4 - starttime_1) / CLOCKS_PER_SEC * 1000;
-        if (cudaEnable)
+        if (cudaEnable_)
         {
             std::cout << "[YOLO_V8(CUDA)]: " << "Cuda warm-up cost " << post_process_time << " ms. " << std::endl;
         }

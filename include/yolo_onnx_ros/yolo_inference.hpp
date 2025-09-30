@@ -8,6 +8,8 @@
 #include <opencv2/opencv.hpp>
 #include "onnxruntime_cxx_api.h"
 
+#include <yolo_onnx_ros/config.hpp>
+
 #ifdef YOLO_ONNX_ROS_CUDA_ENABLED
 #include <cuda_fp16.h>
 #endif
