@@ -12,3 +12,6 @@ SPEED-SAM-C-TENSORRT/
 sam_inference/model/FastSAM-x.onnx
 mask*
 segmentation_results*
+
+# Models
+*.onnx
