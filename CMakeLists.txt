@@ -18,8 +18,11 @@ find_package(catkin REQUIRED
 
 
 set(${PROJECT_NAME}_CUDA_ENABLED ${onnxruntime_ros_CUDA_ENABLED})
-if(onnxruntime_ros_CUDA_ENABLED)
+if(${PROJECT_NAME}_CUDA_ENABLED)
   find_package(CUDAToolkit REQUIRED)
+  set(${PROJECT_NAME}_CUDA_CATKIN_DEPENDS "CUDAToolkit")
+  set(${PROJECT_NAME}_CUDA_INCLUDE_DIRS "${CUDAToolkit_INCLUDE_DIRS}")
+  set(${PROJECT_NAME}_CUDA_TARGET_LINK_LIBRARIES "CUDAToolkit")
 endif()
 
 configure_file(include/${PROJECT_NAME}/config.hpp.in ${CATKIN_DEVEL_PREFIX}/${CATKIN_GLOBAL_INCLUDE_DESTINATION}/${PROJECT_NAME}/config.hpp)
@@ -35,7 +38,7 @@ catkin_package(
   INCLUDE_DIRS include ${CATKIN_DEVEL_PREFIX}/${CATKIN_GLOBAL_INCLUDE_DESTINATION}
   LIBRARIES ${PROJECT_NAME}
   CATKIN_DEPENDS
-  DEPENDS CUDAToolkit OpenCV
+  DEPENDS ${${PROJECT_NAME}_CUDA_CATKIN_DEPENDS} OpenCV
 )
 
 # ------------------------------------------------------------------------------------------------
@@ -46,7 +49,7 @@ include_directories(
   include
   ${CATKIN_DEVEL_PREFIX}/${CATKIN_GLOBAL_INCLUDE_DESTINATION}
   SYSTEM
-  ${CUDAToolkit_INCLUDE_DIRS}
+  ${${PROJECT_NAME}_CUDA_INCLUDE_DIRS}
   ${OpenCV_INCLUDE_DIRS}
   ${catkin_INCLUDE_DIRS}
 )
@@ -55,7 +58,7 @@ add_library(${PROJECT_NAME}
   src/detection.cpp
   src/yolo_inference.cpp
 )
-target_link_libraries(${PROJECT_NAME} CUDA::toolkit ${OpenCV_LIBRARIES} ${catkin_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} ${${PROJECT_NAME}_CUDA_TARGET_LINK_LIBRARIES} ${OpenCV_LIBRARIES} ${catkin_LIBRARIES})
 # add_dependencies(${PROJECT_NAME} generate_config_hpp)
 
 add_executable(test_${PROJECT_NAME}
