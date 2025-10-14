@@ -10,7 +10,7 @@
 
 #include <yolo_onnx_ros/config.hpp>
 
-#ifdef YOLO_ONNX_ROS_CUDA_ENABLED
+#if defined(YOLO_ONNX_ROS_CUDA_ENABLED) && YOLO_ONNX_ROS_CUDA_ENABLED
 #include <cuda_fp16.h>
 #endif
 

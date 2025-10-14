@@ -4,7 +4,7 @@
 #define benchmark
 #define min(a, b) (((a) < (b)) ? (a) : (b))
 
-#ifdef ONNX_YOLO_ROS_CUDA_ENABLED
+#if defined(YOLO_ONNX_ROS_CUDA_ENABLED) && YOLO_ONNX_ROS_CUDA_ENABLED
 namespace Ort
 {
     template<>
@@ -196,7 +196,7 @@ const char* YOLO_V8::RunSession(const cv::Mat& iImg, std::vector<DL_RESULT>& oRe
     }
     else
     {
-#ifdef YOLO_ONNX_ROS_CUDA_ENABLED
+#if defined(YOLO_ONNX_ROS_CUDA_ENABLED) && YOLO_ONNX_ROS_CUDA_ENABLED
         half* blob = new half[processedImg.total() * 3];
         BlobFromImage(processedImg, blob);
         std::vector<int64_t> inputNodeDims = { 1, 3, imgSize_.at(1), imgSize_.at(0) };
@@ -369,7 +369,7 @@ char* YOLO_V8::WarmUpSession() {
     }
     else
     {
-#ifdef YOLO_ONNX_ROS_CUDA_ENABLED
+#if defined(YOLO_ONNX_ROS_CUDA_ENABLED) && YOLO_ONNX_ROS_CUDA_ENABLED
         half* blob = new half[iImg.total() * 3];
         BlobFromImage(processedImg, blob);
         std::vector<int64_t> YOLO_input_node_dims = { 1, 3, imgSize_.at(1), imgSize_.at(0) };

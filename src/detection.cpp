@@ -148,7 +148,7 @@ std::tuple<std::unique_ptr<YOLO_V8>, DL_INIT_PARAM> Initialize()
         // Mayve change the model from V11 to V8
         params.modelPath = "yolo11m.onnx";
         params.imgSize = { 640, 640 };
-    #ifdef YOLO_ONNX_ROS_CUDA_ENABLED
+    #if defined(YOLO_ONNX_ROS_CUDA_ENABLED) && YOLO_ONNX_ROS_CUDA_ENABLED
         params.cudaEnable = true;
 
         // GPU FP32 inference
