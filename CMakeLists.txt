@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.5)
 
 project(yolo_onnx_ros)
 
@@ -93,3 +93,25 @@ install(
     ${PROJECT_NAME}
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
+
+# ------------------------------------------------------------------------------------------------
+#                                           Testing
+# ------------------------------------------------------------------------------------------------
+if (CATKIN_ENABLE_TESTING)
+  #find_package(catkin_lint_cmake REQUIRED)
+  #catkin_add_catkin_lint_test("-W2 --ignore HEADER_OUTSIDE_PACKAGE_INCLUDE_PATH")
+
+  # Utils unit tests (no models needed)
+  catkin_add_gtest(yolo_test test/yolo_test.cpp)
+  if(TARGET yolo_test)
+    target_link_libraries(
+      yolo_test
+      ${PROJECT_NAME}_lib
+      ${catkin_LIBRARIES}
+      GTest::gtest
+      GTest::gtest_main
+      )
+    #target_include_directories(yolo_test PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+  endif()
+
+endif()
