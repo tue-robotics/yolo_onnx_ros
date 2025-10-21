@@ -5,12 +5,20 @@
 #include <fstream>
 #include <random>
 
-int main()
+int main(int argc, char *argv[])
 {
     std::unique_ptr<YOLO_V8> yoloDetector;
     DL_INIT_PARAM params;
 
-    std::tie(yoloDetector, params) = Initialize();
+    if (argc < 2)
+    {
+        std::cerr << "Not enough args provided" << std::endl;
+        return 1;
+    }
+
+    const std::filesystem::path model_name = argv[1];
+
+    std::tie(yoloDetector, params) = Initialize(model_name);
 
     std::filesystem::path current_path = std::filesystem::current_path();
     std::filesystem::path imgs_path = current_path / "images";

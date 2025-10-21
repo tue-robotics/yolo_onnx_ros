@@ -90,9 +90,10 @@ std::vector<DL_RESULT> Detector(std::unique_ptr<YOLO_V8>& p, const cv::Mat& img)
 
 
 
-int ReadCocoYaml(std::unique_ptr<YOLO_V8>& p) {
+int ReadCocoYaml(const std::filesystem::path& filename, std::unique_ptr<YOLO_V8>& p)
+{
     // Open the YAML file
-    std::ifstream file("data/coco.yaml");
+    std::ifstream file(filename);
     if (!file.is_open())
     {
         std::cerr << "Failed to open file" << std::endl;
@@ -138,15 +139,14 @@ int ReadCocoYaml(std::unique_ptr<YOLO_V8>& p) {
     return 0;
 }
 
-std::tuple<std::unique_ptr<YOLO_V8>, DL_INIT_PARAM> Initialize()
+std::tuple<std::unique_ptr<YOLO_V8>, DL_INIT_PARAM> Initialize(const std::filesystem::path& model_filename)
 {
     std::unique_ptr<YOLO_V8> yoloDetector = std::make_unique<YOLO_V8>();
-    ReadCocoYaml(yoloDetector);
+    ReadCocoYaml(model_filename.parent_path() / "coco.yaml", yoloDetector);
         DL_INIT_PARAM params;
         params.rectConfidenceThreshold = 0.1;
         params.iouThreshold = 0.5;
-        // Mayve change the model from V11 to V8
-        params.modelPath = "yolo11m.onnx";
+        params.modelPath = model_filename;
         params.imgSize = { 640, 640 };
     #if defined(YOLO_ONNX_ROS_CUDA_ENABLED) && YOLO_ONNX_ROS_CUDA_ENABLED
         params.cudaEnable = true;
