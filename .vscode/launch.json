@@ -5,7 +5,7 @@
             "name": "Debug Yolo Model",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/devel/lib/yolo_onnx_ros/yolo_onnx_ros", // Path to the executable
+            "program": "${workspaceFolder}/build/devel/lib/yolo_onnx_ros/test_yolo_onnx_ros", // Path to the executable
             "args": [], // Add any command-line arguments for your program here
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/build", // Set the working directory

@@ -50,6 +50,7 @@
             "command": "cmake",
             "args": [
                 "-DCMAKE_BUILD_TYPE=Debug",
+                "-DCMAKE_POLICY_VERSION_MINIMUM=3.5",
                 "-S", "${workspaceFolder}/",
                 "-B", "${workspaceFolder}/build"
             ],
