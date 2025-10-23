@@ -1,5 +1,5 @@
 #include "yolo_inference.h"
-#include "detection.h"
+#include "detection.hpp"
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 #include <opencv2/opencv.hpp>
