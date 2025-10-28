@@ -1,4 +1,4 @@
-#include "yolo_inference.h"
+#include "yolo_inference.hpp"
 #include "detection.hpp"
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
