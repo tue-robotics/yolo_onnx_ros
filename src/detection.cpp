@@ -5,7 +5,6 @@
 #include <iomanip>
 #include <iostream>
 
-// #define LOGGING
 std::vector<DL_RESULT> Detector(std::unique_ptr<YOLO_V8>& p, const cv::Mat& img) {
 
             std::vector<DL_RESULT> res;

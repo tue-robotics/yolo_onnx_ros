@@ -5,8 +5,11 @@
             "name": "Debug Yolo Model",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/devel/lib/yolo_onnx_ros/test_yolo_onnx_ros", // Path to the executable
-            "args": [], // Add any command-line arguments for your program here
+            "program": "/home/amigo/ros/noetic/system/devel/lib/yolo_onnx_ros/test_yolo_onnx_ros", // Path to the executable
+            "args": [
+                "/home/amigo/ros/noetic/repos/github.com/tue-robotics/yolo_onnx_ros/data/yolo11m.onnx",
+                "/home/amigo/Documents/repos/hero_sam.bak/pipeline/build/images"
+                ], // Add any command-line arguments for your program here
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/build", // Set the working directory
             "environment": [],
@@ -19,13 +22,13 @@
                     "ignoreFailures": true
                 }
             ],
-            "preLaunchTask": "build-yolo-project" // Ensure the project is built before debugging
+            //"preLaunchTask": "build-yolo-project" // Ensure the project is built before debugging
         },
         {
             "name": "Debug Yolo Test",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/Yolov8OnnxRuntimeCPPInference_test", // Path to the executable
+            "program": "/home/amigo/ros/noetic/system/devel/lib/yolo_onnx_ros/yolo_test", // Path to the executable
             "args": [], // Add any command-line arguments for your program here
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/build", // Set the working directory
@@ -39,7 +42,7 @@
                     "ignoreFailures": true
                 }
             ],
-            "preLaunchTask": "build-yolo-project" // Ensure the project is built before debugging
+            //"preLaunchTask": "build-yolo-project" // Ensure the project is built before debugging
         }
     ]
 }
