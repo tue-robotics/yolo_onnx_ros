@@ -20,8 +20,7 @@ int main(int argc, char *argv[])
 
     std::tie(yoloDetector, params) = Initialize(model_name);
 
-    std::filesystem::path current_path = std::filesystem::current_path();
-    std::filesystem::path imgs_path = current_path / "images";
+    std::filesystem::path imgs_path = argv[2];
     for (auto& i : std::filesystem::directory_iterator(imgs_path))
     {
         if (i.path().extension() == ".jpg" || i.path().extension() == ".png" || i.path().extension() == ".jpeg")
@@ -30,12 +29,14 @@ int main(int argc, char *argv[])
             cv::Mat img = cv::imread(img_path);
             std::vector<DL_RESULT> results;
             results = Detector(yoloDetector, img);
+            #ifdef LOGGING
             for (const auto& result : results)
             {
                 std::cout << "Image path: " << img_path << "\n"
                           << "class id:   " << result.classId << "\n"
                           << "confidence: " << result.confidence << "\n";
             }
+            #endif
         }
     }
 
