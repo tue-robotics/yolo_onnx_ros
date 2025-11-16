@@ -91,8 +91,6 @@ TEST_F(YoloInferenceTest, FullInferencePipeline)
     const char* runResult = yolo->RunSession(testImage_realistic, results);
 
     EXPECT_EQ(runResult, nullptr) << "RunSession should succeed";
-    // Note: results might be empty for random test image, that's okay
-    EXPECT_TRUE(results.size() >= 0) << "Results should be a valid vector";
 }
 
 // Run all tests
