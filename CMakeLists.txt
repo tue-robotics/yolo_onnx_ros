@@ -108,8 +108,7 @@ if (CATKIN_ENABLE_TESTING)
       yolo_test
       ${PROJECT_NAME}_lib
       ${catkin_LIBRARIES}
-      GTest::gtest
-      GTest::gtest_main
+      gmock_main
       )
     #target_include_directories(yolo_test PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
   endif()
