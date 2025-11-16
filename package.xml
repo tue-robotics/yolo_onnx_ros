@@ -19,6 +19,7 @@
   <exec_depend>onnxruntime_ros</exec_depend>
 
   <test_depend>catkin_lint_cmake</test_depend>
+  <test_depend>google-mock</test_depend>
 
   <doc_depend>doxygen</doc_depend>
 
