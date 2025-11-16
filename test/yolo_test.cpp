@@ -39,7 +39,6 @@ protected:
     DL_INIT_PARAM params;
     std::vector<int> NonSquareImgSize;
     std::unique_ptr<YOLO_V8> yolo;
-    std::vector<DL_RESULT> results;
 };
 
 TEST_F(YoloInferenceTest, ObjectCreation)
@@ -88,6 +87,7 @@ TEST_F(YoloInferenceTest, FullInferencePipeline)
     const char* createResult = yolo->CreateSession(params);
     ASSERT_EQ(createResult, nullptr) << "Session creation must succeed for inference test";
 
+    std::vector<DL_RESULT> results;
     const char* runResult = yolo->RunSession(testImage_realistic, results);
 
     EXPECT_EQ(runResult, nullptr) << "RunSession should succeed";
