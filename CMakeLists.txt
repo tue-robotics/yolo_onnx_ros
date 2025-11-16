@@ -106,7 +106,7 @@ if (CATKIN_ENABLE_TESTING)
   if(TARGET yolo_test)
     target_link_libraries(
       yolo_test
-      ${PROJECT_NAME}_lib
+      ${PROJECT_NAME}
       ${catkin_LIBRARIES}
       gmock_main
       )
