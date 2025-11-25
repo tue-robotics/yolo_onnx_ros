@@ -7,4 +7,4 @@ std::tuple<std::unique_ptr<YOLO_V8>, DL_INIT_PARAM> Initialize(const std::filesy
 
 std::vector<DL_RESULT> Detector(std::unique_ptr<YOLO_V8>& p, const cv::Mat& img);
 
-int ReadCocoYaml(const std::filesystem::path& filename, std::unique_ptr<YOLO_V8>& p);
+int ReadYaml(const std::filesystem::path& filename, std::unique_ptr<YOLO_V8>& p);

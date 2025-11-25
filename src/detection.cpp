@@ -89,17 +89,15 @@ std::vector<DL_RESULT> Detector(std::unique_ptr<YOLO_V8>& p, const cv::Mat& img)
 
 
 
-int ReadCocoYaml(const std::filesystem::path& filename, std::unique_ptr<YOLO_V8>& p)
+int ReadYaml(const std::filesystem::path& filename, std::unique_ptr<YOLO_V8>& p)
 {
-    // Open the YAML file
     std::ifstream file(filename);
     if (!file.is_open())
     {
-        std::cerr << "Failed to open file" << std::endl;
+        std::cerr << "[ReadYaml] Failed to open: " << filename << std::endl;
         return 1;
     }
 
-    // Read the file line by line
     std::string line;
     std::vector<std::string> lines;
     while (std::getline(file, line))
@@ -109,39 +107,79 @@ int ReadCocoYaml(const std::filesystem::path& filename, std::unique_ptr<YOLO_V8>
 
     // Find the start and end of the names section
     std::size_t start = 0;
-    std::size_t end = 0;
+    std::size_t end = lines.size();
+    bool in_names_section = false;
+
     for (std::size_t i = 0; i < lines.size(); i++)
     {
         if (lines[i].find("names:") != std::string::npos)
         {
             start = i + 1;
+            in_names_section = true;
         }
-        else if (start > 0 && lines[i].find(':') == std::string::npos)
+        else if (in_names_section && !lines[i].empty() &&
+                 lines[i][0] != ' ' && lines[i][0] != '\t' && lines[i][0] != '-')
         {
+            // Found next top-level key (no indentation)
             end = i;
             break;
         }
     }
 
-    // Extract the names
+    if (!in_names_section || start >= lines.size())
+    {
+        std::cerr << "[ReadYaml] Could not find 'names:' section in " << filename << std::endl;
+        return 1;
+    }
+
+    // Extract the names with proper trimming
     std::vector<std::string> names;
     for (std::size_t i = start; i < end; i++)
     {
-        std::stringstream ss(lines[i]);
+        std::string trimmed = lines[i];
+        // Remove leading whitespace
+        trimmed.erase(0, trimmed.find_first_not_of(" \t"));
+
+        if (trimmed.empty()) continue;
+
+        // Handle both formats: "0: Apple" and "- Apple"
         std::string name;
-        std::getline(ss, name, ':'); // Extract the number before the delimiter
-        std::getline(ss, name); // Extract the string after the delimiter
-        names.push_back(name);
+        size_t colon_pos = trimmed.find(':');
+        if (colon_pos != std::string::npos) {
+            // Dict format: "0: Apple"
+            name = trimmed.substr(colon_pos + 1);
+        } else if (trimmed[0] == '-') {
+            // List format: "- Apple"
+            name = trimmed.substr(1);
+        } else {
+            continue;
+        }
+
+        // Trim whitespace from extracted name
+        name.erase(0, name.find_first_not_of(" \t"));
+        name.erase(name.find_last_not_of(" \t\r\n") + 1);
+
+        if (!name.empty()) {
+            names.push_back(name);
+        }
+    }
+
+    if (names.empty())
+    {
+        std::cerr << "[ReadYaml] No class names found in " << filename << std::endl;
+        return 1;
     }
 
     p->classes = names;
+    std::cout << "[ReadYaml] Loaded " << names.size() << " classes from " << filename << std::endl;
     return 0;
 }
 
 std::tuple<std::unique_ptr<YOLO_V8>, DL_INIT_PARAM> Initialize(const std::filesystem::path& model_filename)
 {
     std::unique_ptr<YOLO_V8> yoloDetector = std::make_unique<YOLO_V8>();
-    ReadCocoYaml(model_filename.parent_path() / "coco.yaml", yoloDetector);
+        ReadYaml(model_filename.parent_path() / "coco.yaml", yoloDetector);
+
         DL_INIT_PARAM params;
         params.rectConfidenceThreshold = 0.1;
         params.iouThreshold = 0.5;
