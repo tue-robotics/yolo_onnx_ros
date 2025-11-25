@@ -233,8 +233,9 @@ char* YOLO_V8::TensorProcess(clock_t& starttime_1, const cv::Mat&, N& blob, std:
     case YOLO_DETECT_V8:
     case YOLO_DETECT_V8_HALF:
     {
-        int signalResultNum = outputNodeDims[1];//84
-        int strideNum = outputNodeDims[2];//8400
+        int signalResultNum = outputNodeDims[1]; // Should be 605 for OIV7 (4 bbox + 601 classes)
+        int strideNum = outputNodeDims[2];        // 8400
+        int numClasses = signalResultNum - 4;     // 601 for OIV7, 80 for COCO
         std::vector<int> class_ids;
         std::vector<float> confidences;
         std::vector<cv::Rect> boxes;
@@ -260,7 +261,7 @@ char* YOLO_V8::TensorProcess(clock_t& starttime_1, const cv::Mat&, N& blob, std:
         for (int i = 0; i < strideNum; ++i)
         {
             float* classesScores = data + 4;
-            cv::Mat scores(1, this->classes.size(), CV_32FC1, classesScores);
+            cv::Mat scores(1, numClasses, CV_32FC1, classesScores);  // Use numClasses instead of this->classes.size()
             cv::Point class_id;
             double maxClassScore;
             cv::minMaxLoc(scores, 0, &maxClassScore, 0, &class_id);
