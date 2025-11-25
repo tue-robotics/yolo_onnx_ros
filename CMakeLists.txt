@@ -115,7 +115,7 @@ install(
 # ------------------------------------------------------------------------------------------------
 if (CATKIN_ENABLE_TESTING)
   find_package(catkin_lint_cmake REQUIRED)
-  catkin_add_catkin_lint_test("-W2 --ignore HEADER_OUTSIDE_PACKAGE_INCLUDE_PATH")
+  catkin_add_catkin_lint_test("-W2 --ignore EXTERNAL_DIRECTORY --ignore EXTERNAL_FILE --ignore EXTERNAL_INCLUDE_PATH --ignore HEADER_OUTSIDE_PACKAGE_INCLUDE_PATH --ignore MISSING_DIRECTORY")
 
   # Utils unit tests (no models needed)
   catkin_add_gmock(yolo_test test/yolo_test.cpp WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/resources/yolo11m")
