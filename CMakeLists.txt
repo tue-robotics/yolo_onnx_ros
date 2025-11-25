@@ -66,6 +66,17 @@ add_executable(test_${PROJECT_NAME}
 )
 target_link_libraries(test_${PROJECT_NAME} ${PROJECT_NAME} ${OpenCV_LIBRARIES} ${catkin_LIBRARIES})
 
+file(
+  DOWNLOAD https://github.com/tue-robotics/${PROJECT_NAME}/releases/download/yolo11m/yolo11m.onnx ${CMAKE_CURRENT_BINARY_DIR}/resources/yolo11m/yolo11m.onnx
+  EXPECTED_HASH "SHA256=0eb68248f3868dfd8341e2e7d90e1e9d9594325e984574c11b0404f27673a419"
+  SHOW_PROGRESS
+)
+file(
+  DOWNLOAD https://github.com/tue-robotics/${PROJECT_NAME}/releases/download/yolo11m/coco.yaml ${CMAKE_CURRENT_BINARY_DIR}/resources/yolo11m/coco.yaml
+  EXPECTED_HASH "SHA256=721773c881cb7de92339c9e0f86dbf6e90b9ed551c1cf8d5bd6f043497e241aa"
+  SHOW_PROGRESS
+)
+
 # ------------------------------------------------------------------------------------------------
 #                                               INSTALL
 # ------------------------------------------------------------------------------------------------
@@ -94,6 +105,11 @@ install(
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
+install(
+  DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/resources
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/resources
+)
+
 # ------------------------------------------------------------------------------------------------
 #                                           Testing
 # ------------------------------------------------------------------------------------------------
@@ -102,15 +118,13 @@ if (CATKIN_ENABLE_TESTING)
   catkin_add_catkin_lint_test("-W2 --ignore HEADER_OUTSIDE_PACKAGE_INCLUDE_PATH")
 
   # Utils unit tests (no models needed)
-  catkin_add_gtest(yolo_test test/yolo_test.cpp)
+  catkin_add_gmock(yolo_test test/yolo_test.cpp WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/resources/yolo11m")
   if(TARGET yolo_test)
     target_link_libraries(
       yolo_test
       ${PROJECT_NAME}
       ${catkin_LIBRARIES}
-      gmock_main
       )
-    #target_include_directories(yolo_test PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
   endif()
 
 endif()
