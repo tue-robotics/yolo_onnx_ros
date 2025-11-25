@@ -20,8 +20,7 @@ protected:
         cv::randu(testImage_realistic, cv::Scalar(0, 0, 0), cv::Scalar(255, 255, 255));
 
         // Setup common parameters
-        std::tie(yolo, params) = Initialize("yolo11m.onnx");
-
+        std::tie(yolo, params) = Initialize("./yolo11m.onnx");
 
         NonSquareImgSize = { testImage_800x600.cols, testImage_800x600.rows };
     }
