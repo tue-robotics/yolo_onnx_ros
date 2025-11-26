@@ -1,3 +1,5 @@
+#pragma once
+
 #include "yolo_onnx_ros/yolo_inference.hpp"
 
 #include <filesystem>
