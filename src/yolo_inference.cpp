@@ -192,7 +192,7 @@ const char* YOLO_V8::RunSession(const cv::Mat& iImg, std::vector<DL_RESULT>& oRe
         BlobFromImage(processedImg, blob);
         // ONNX expects {N, C, H, W} = {1, 3, height, width}
         std::vector<int64_t> inputNodeDims = { 1, 3, imgSize_.at(1), imgSize_.at(0) };
-        TensorProcess(starttime_1, iImg, blob, inputNodeDims, oResult);
+        TensorProcess(starttime_1, blob, inputNodeDims, oResult);
     }
     else
     {
@@ -200,7 +200,7 @@ const char* YOLO_V8::RunSession(const cv::Mat& iImg, std::vector<DL_RESULT>& oRe
         half* blob = new half[processedImg.total() * 3];
         BlobFromImage(processedImg, blob);
         std::vector<int64_t> inputNodeDims = { 1, 3, imgSize_.at(1), imgSize_.at(0) };
-        TensorProcess(starttime_1, iImg, blob, inputNodeDims, oResult);
+        TensorProcess(starttime_1, blob, inputNodeDims, oResult);
 #endif
     }
 
@@ -209,7 +209,7 @@ const char* YOLO_V8::RunSession(const cv::Mat& iImg, std::vector<DL_RESULT>& oRe
 
 
 template<typename N>
-char* YOLO_V8::TensorProcess(clock_t& starttime_1, const cv::Mat&, N& blob, std::vector<int64_t>& inputNodeDims,
+char* YOLO_V8::TensorProcess(clock_t& starttime_1, N& blob, std::vector<int64_t>& inputNodeDims,
     std::vector<DL_RESULT>& oResult) {
     Ort::Value inputTensor = Ort::Value::CreateTensor<typename std::remove_pointer<N>::type>(
         Ort::MemoryInfo::CreateCpu(OrtDeviceAllocator, OrtMemTypeCPU), blob, 3 * imgSize_.at(0) * imgSize_.at(1),
@@ -233,9 +233,9 @@ char* YOLO_V8::TensorProcess(clock_t& starttime_1, const cv::Mat&, N& blob, std:
     case YOLO_DETECT_V8:
     case YOLO_DETECT_V8_HALF:
     {
-        int signalResultNum = outputNodeDims[1]; // Should be 605 for OIV7 (4 bbox + 601 classes)
+        int signalResultNum = outputNodeDims[1]; // Dataset-specific: e.g., 605 for OIV7 (4 bbox + 601 classes), 84 for COCO (4 bbox + 80 classes)
         int strideNum = outputNodeDims[2];        // 8400
-        int numClasses = signalResultNum - 4;     // 601 for OIV7, 80 for COCO
+        int numClasses = signalResultNum - 4;     // 601 for OIV7, 80 for COCO (4 rows are bbox)
         std::vector<int> class_ids;
         std::vector<float> confidences;
         std::vector<cv::Rect> boxes;
@@ -286,7 +286,7 @@ char* YOLO_V8::TensorProcess(clock_t& starttime_1, const cv::Mat&, N& blob, std:
         }
         std::vector<int> nmsResult;
         cv::dnn::NMSBoxes(boxes, confidences, rectConfidenceThreshold_, iouThreshold_, nmsResult);
-        for (uint i = 0; i < nmsResult.size(); ++i)
+        for (size_t i = 0; i < nmsResult.size(); ++i)
         {
             int idx = nmsResult[i];
             DL_RESULT result;
@@ -328,7 +328,7 @@ char* YOLO_V8::TensorProcess(clock_t& starttime_1, const cv::Mat&, N& blob, std:
         float *data = (float *) rawData.data;
 
         DL_RESULT result;
-        for (uint i = 0; i < this->classes.size(); i++)
+        for (size_t i = 0; i < this->classes.size(); i++)
         {
             result.classId = i;
             result.confidence = data[i];

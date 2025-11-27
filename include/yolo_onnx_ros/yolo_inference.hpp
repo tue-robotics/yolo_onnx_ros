@@ -73,7 +73,7 @@ private:
 
     // Note: The logic is on the .cpp file since its a private method.
     template<typename N>
-    char* TensorProcess(clock_t& starttime_1, const cv::Mat& iImg, N& blob, std::vector<int64_t>& inputNodeDims,
+    char* TensorProcess(clock_t& starttime_1, N& blob, std::vector<int64_t>& inputNodeDims,
                         std::vector<DL_RESULT>& oResult);
 
 
