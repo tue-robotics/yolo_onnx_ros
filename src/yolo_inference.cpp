@@ -1,18 +1,10 @@
-#include "yolo_inference.h"
+#include "yolo_onnx_ros/yolo_inference.hpp"
 #include <regex>
 
 #define benchmark
 #define min(a, b) (((a) < (b)) ? (a) : (b))
 
-YOLO_V8::YOLO_V8()
-{
-}
-
-YOLO_V8::~YOLO_V8()
-{
-}
-
-#ifdef USE_CUDA
+#if defined(YOLO_ONNX_ROS_CUDA_ENABLED) && YOLO_ONNX_ROS_CUDA_ENABLED
 namespace Ort
 {
     template<>
@@ -49,8 +41,13 @@ char* BlobFromImage(const cv::Mat& iImg, T& iBlob) {
 }
 
 
-char* YOLO_V8::PreProcess(const cv::Mat& iImg, std::vector<int> iImgSize, cv::Mat& oImg)
+char* YOLO_V8::PreProcess(const cv::Mat& iImg, const std::vector<int>& iImgSize, cv::Mat& oImg)
 {
+    // Basic validation
+    if (iImg.empty()) return (char*)"[YOLO_V8]: Empty input image.";
+    if (iImgSize.size() != 2 || iImgSize[0] <= 0 || iImgSize[1] <= 0)
+        return (char*)"[YOLO_V8]: Invalid target image size.";
+
     if (iImg.channels() == 3)
     {
         oImg = iImg.clone();
@@ -61,7 +58,7 @@ char* YOLO_V8::PreProcess(const cv::Mat& iImg, std::vector<int> iImgSize, cv::Ma
         cv::cvtColor(iImg, oImg, cv::COLOR_GRAY2RGB);
     }
 
-    switch (modelType)
+    switch (modelType_)
     {
     case YOLO_DETECT_V8:
     case YOLO_POSE:
@@ -70,20 +67,24 @@ char* YOLO_V8::PreProcess(const cv::Mat& iImg, std::vector<int> iImgSize, cv::Ma
     {
         if (iImg.cols >= iImg.rows)
         {
-            resizeScales = iImg.cols / (float)iImgSize.at(0);
-            cv::resize(oImg, oImg, cv::Size(iImgSize.at(0), int(iImg.rows / resizeScales)));
+            // scale by target width
+            resizeScales_ = iImg.cols / (float)iImgSize.at(0);
+            cv::resize(oImg, oImg, cv::Size(iImgSize.at(0), int(std::round(iImg.rows / resizeScales_))));
         }
         else
         {
-            resizeScales = iImg.rows / (float)iImgSize.at(0);
-            cv::resize(oImg, oImg, cv::Size(int(iImg.cols / resizeScales), iImgSize.at(1)));
+            // scale by target height
+            resizeScales_ = iImg.rows / (float)iImgSize.at(1);
+            cv::resize(oImg, oImg, cv::Size(int(std::round(iImg.cols / resizeScales_)), iImgSize.at(1)));
         }
-        cv::Mat tempImg = cv::Mat::zeros(iImgSize.at(0), iImgSize.at(1), CV_8UC3);
+        // Note: cv::Mat takes (rows, cols) = (height, width)
+        cv::Mat tempImg = cv::Mat::zeros(iImgSize.at(1), iImgSize.at(0), CV_8UC3);
         oImg.copyTo(tempImg(cv::Rect(0, 0, oImg.cols, oImg.rows)));
         oImg = tempImg;
         break;
     }
     case YOLO_CLS: // CenterCrop
+    case YOLO_CLS_HALF:
     {
         int h = iImg.rows;
         int w = iImg.cols;
@@ -100,18 +101,18 @@ char* YOLO_V8::PreProcess(const cv::Mat& iImg, std::vector<int> iImgSize, cv::Ma
 
 const char* YOLO_V8::CreateSession(DL_INIT_PARAM& iParams) {
     const char* Ret = RET_OK;
-    if (session)
+    if (session_)
     {
         // Clear node names from previous declaration
-        for (auto& name : inputNodeNames) {
+        for (auto& name : inputNodeNames_) {
             delete[] name;
         }
-        inputNodeNames.clear();
+        inputNodeNames_.clear();
 
-        for (auto& name : outputNodeNames) {
+        for (auto& name : outputNodeNames_) {
             delete[] name;
         }
-        outputNodeNames.clear();
+        outputNodeNames_.clear();
     }
     std::regex pattern("[\u4e00-\u9fa5]");
     bool result = std::regex_search(iParams.modelPath, pattern);
@@ -123,12 +124,12 @@ const char* YOLO_V8::CreateSession(DL_INIT_PARAM& iParams) {
     }
     try
     {
-        rectConfidenceThreshold = iParams.rectConfidenceThreshold;
-        iouThreshold = iParams.iouThreshold;
-        imgSize = iParams.imgSize;
-        modelType = iParams.modelType;
-        cudaEnable = iParams.cudaEnable;
-        env = Ort::Env(ORT_LOGGING_LEVEL_WARNING, "Yolo");
+        rectConfidenceThreshold_ = iParams.rectConfidenceThreshold;
+        iouThreshold_ = iParams.iouThreshold;
+        imgSize_ = iParams.imgSize;
+        modelType_ = iParams.modelType;
+        cudaEnable_ = iParams.cudaEnable;
+        env_ = Ort::Env(ORT_LOGGING_LEVEL_WARNING, "Yolo");
         Ort::SessionOptions sessionOption;
         if (iParams.cudaEnable)
         {
@@ -141,23 +142,23 @@ const char* YOLO_V8::CreateSession(DL_INIT_PARAM& iParams) {
         sessionOption.SetLogSeverityLevel(iParams.logSeverityLevel);
 
         const char *modelPath = iParams.modelPath.c_str();
-        session = std::make_unique<Ort::Session>(env, modelPath, sessionOption);
+        session_ = std::make_unique<Ort::Session>(env_, modelPath, sessionOption);
         Ort::AllocatorWithDefaultOptions allocator;
-        size_t inputNodesNum = session->GetInputCount();
+        size_t inputNodesNum = session_->GetInputCount();
         for (size_t i = 0; i < inputNodesNum; i++)
         {
-            Ort::AllocatedStringPtr input_node_name = session->GetInputNameAllocated(i, allocator);
+            Ort::AllocatedStringPtr input_node_name = session_->GetInputNameAllocated(i, allocator);
             char* temp_buf = new char[50];
             strcpy(temp_buf, input_node_name.get());
-            inputNodeNames.push_back(temp_buf);
+            inputNodeNames_.push_back(temp_buf);
         }
-        size_t OutputNodesNum = session->GetOutputCount();
+        size_t OutputNodesNum = session_->GetOutputCount();
         for (size_t i = 0; i < OutputNodesNum; i++)
         {
-            Ort::AllocatedStringPtr output_node_name = session->GetOutputNameAllocated(i, allocator);
+            Ort::AllocatedStringPtr output_node_name = session_->GetOutputNameAllocated(i, allocator);
             char* temp_buf = new char[10];
             strcpy(temp_buf, output_node_name.get());
-            outputNodeNames.push_back(temp_buf);
+            outputNodeNames_.push_back(temp_buf);
         }
         options = Ort::RunOptions{ nullptr };
         WarmUpSession();
@@ -181,25 +182,25 @@ const char* YOLO_V8::CreateSession(DL_INIT_PARAM& iParams) {
 const char* YOLO_V8::RunSession(const cv::Mat& iImg, std::vector<DL_RESULT>& oResult) {
 #ifdef benchmark
     clock_t starttime_1 = clock();
-#endif // benchmark
-
+#endif
     const char* Ret = RET_OK;
     cv::Mat processedImg;
-    PreProcess(iImg, imgSize, processedImg);
-    if (modelType < 4)
+    PreProcess(iImg, imgSize_, processedImg);
+    if (modelType_ < 4)
     {
         float* blob = new float[processedImg.total() * 3];
         BlobFromImage(processedImg, blob);
-        std::vector<int64_t> inputNodeDims = { 1, 3, imgSize.at(0), imgSize.at(1) };
-        TensorProcess(starttime_1, iImg, blob, inputNodeDims, oResult);
+        // ONNX expects {N, C, H, W} = {1, 3, height, width}
+        std::vector<int64_t> inputNodeDims = { 1, 3, imgSize_.at(1), imgSize_.at(0) };
+        TensorProcess(starttime_1, blob, inputNodeDims, oResult);
     }
     else
     {
-#ifdef USE_CUDA
+#if defined(YOLO_ONNX_ROS_CUDA_ENABLED) && YOLO_ONNX_ROS_CUDA_ENABLED
         half* blob = new half[processedImg.total() * 3];
         BlobFromImage(processedImg, blob);
-        std::vector<int64_t> inputNodeDims = { 1,3,imgSize.at(0),imgSize.at(1) };
-        TensorProcess(starttime_1, iImg, blob, inputNodeDims, oResult);
+        std::vector<int64_t> inputNodeDims = { 1, 3, imgSize_.at(1), imgSize_.at(0) };
+        TensorProcess(starttime_1, blob, inputNodeDims, oResult);
 #endif
     }
 
@@ -208,16 +209,16 @@ const char* YOLO_V8::RunSession(const cv::Mat& iImg, std::vector<DL_RESULT>& oRe
 
 
 template<typename N>
-char* YOLO_V8::TensorProcess(clock_t& starttime_1, const cv::Mat& iImg, N& blob, std::vector<int64_t>& inputNodeDims,
+char* YOLO_V8::TensorProcess(clock_t& starttime_1, N& blob, std::vector<int64_t>& inputNodeDims,
     std::vector<DL_RESULT>& oResult) {
     Ort::Value inputTensor = Ort::Value::CreateTensor<typename std::remove_pointer<N>::type>(
-        Ort::MemoryInfo::CreateCpu(OrtDeviceAllocator, OrtMemTypeCPU), blob, 3 * imgSize.at(0) * imgSize.at(1),
+        Ort::MemoryInfo::CreateCpu(OrtDeviceAllocator, OrtMemTypeCPU), blob, 3 * imgSize_.at(0) * imgSize_.at(1),
         inputNodeDims.data(), inputNodeDims.size());
 #ifdef benchmark
     clock_t starttime_2 = clock();
 #endif // benchmark
-    auto outputTensor = session->Run(options, inputNodeNames.data(), &inputTensor, 1, outputNodeNames.data(),
-        outputNodeNames.size());
+    auto outputTensor = session_->Run(options, inputNodeNames_.data(), &inputTensor, 1, outputNodeNames_.data(),
+        outputNodeNames_.size());
 #ifdef benchmark
     clock_t starttime_3 = clock();
 #endif // benchmark
@@ -227,18 +228,19 @@ char* YOLO_V8::TensorProcess(clock_t& starttime_1, const cv::Mat& iImg, N& blob,
     std::vector<int64_t> outputNodeDims = tensor_info.GetShape();
     auto output = outputTensor.front().GetTensorMutableData<typename std::remove_pointer<N>::type>();
     delete[] blob;
-    switch (modelType)
+    switch (modelType_)
     {
     case YOLO_DETECT_V8:
     case YOLO_DETECT_V8_HALF:
     {
-        int signalResultNum = outputNodeDims[1];//84
-        int strideNum = outputNodeDims[2];//8400
+        int signalResultNum = outputNodeDims[1]; // Dataset-specific: e.g., 605 for OIV7 (4 bbox + 601 classes), 84 for COCO (4 bbox + 80 classes)
+        int strideNum = outputNodeDims[2];        // 8400
+        int numClasses = signalResultNum - 4;     // 601 for OIV7, 80 for COCO (4 rows are bbox)
         std::vector<int> class_ids;
         std::vector<float> confidences;
         std::vector<cv::Rect> boxes;
         cv::Mat rawData;
-        if (modelType == YOLO_DETECT_V8)
+        if (modelType_ == YOLO_DETECT_V8)
         {
             // FP32
             rawData = cv::Mat(signalResultNum, strideNum, CV_32F, output);
@@ -259,11 +261,11 @@ char* YOLO_V8::TensorProcess(clock_t& starttime_1, const cv::Mat& iImg, N& blob,
         for (int i = 0; i < strideNum; ++i)
         {
             float* classesScores = data + 4;
-            cv::Mat scores(1, this->classes.size(), CV_32FC1, classesScores);
+            cv::Mat scores(1, numClasses, CV_32FC1, classesScores);  // Use numClasses instead of this->classes.size()
             cv::Point class_id;
             double maxClassScore;
             cv::minMaxLoc(scores, 0, &maxClassScore, 0, &class_id);
-            if (maxClassScore > rectConfidenceThreshold)
+            if (maxClassScore > rectConfidenceThreshold_)
             {
                 confidences.push_back(maxClassScore);
                 class_ids.push_back(class_id.x);
@@ -272,19 +274,19 @@ char* YOLO_V8::TensorProcess(clock_t& starttime_1, const cv::Mat& iImg, N& blob,
                 float w = data[2];
                 float h = data[3];
 
-                int left = int((x - 0.5 * w) * resizeScales);
-                int top = int((y - 0.5 * h) * resizeScales);
+                int left = int((x - 0.5 * w) * resizeScales_);
+                int top = int((y - 0.5 * h) * resizeScales_);
 
-                int width = int(w * resizeScales);
-                int height = int(h * resizeScales);
+                int width = int(w * resizeScales_);
+                int height = int(h * resizeScales_);
 
                 boxes.push_back(cv::Rect(left, top, width, height));
             }
             data += signalResultNum;
         }
         std::vector<int> nmsResult;
-        cv::dnn::NMSBoxes(boxes, confidences, rectConfidenceThreshold, iouThreshold, nmsResult);
-        for (int i = 0; i < nmsResult.size(); ++i)
+        cv::dnn::NMSBoxes(boxes, confidences, rectConfidenceThreshold_, iouThreshold_, nmsResult);
+        for (size_t i = 0; i < nmsResult.size(); ++i)
         {
             int idx = nmsResult[i];
             DL_RESULT result;
@@ -299,7 +301,7 @@ char* YOLO_V8::TensorProcess(clock_t& starttime_1, const cv::Mat& iImg, N& blob,
         double pre_process_time = (double)(starttime_2 - starttime_1) / CLOCKS_PER_SEC * 1000;
         double process_time = (double)(starttime_3 - starttime_2) / CLOCKS_PER_SEC * 1000;
         double post_process_time = (double)(starttime_4 - starttime_3) / CLOCKS_PER_SEC * 1000;
-        if (cudaEnable)
+        if (cudaEnable_)
         {
             std::cout << "[YOLO_V8(CUDA)]: " << pre_process_time << "ms pre-process, " << process_time << "ms inference, " << post_process_time << "ms post-process." << std::endl;
         }
@@ -315,7 +317,7 @@ char* YOLO_V8::TensorProcess(clock_t& starttime_1, const cv::Mat& iImg, N& blob,
     case YOLO_CLS_HALF:
     {
         cv::Mat rawData;
-        if (modelType == YOLO_CLS) {
+        if (modelType_ == YOLO_CLS) {
             // FP32
             rawData = cv::Mat(1, this->classes.size(), CV_32F, output);
         } else {
@@ -326,7 +328,7 @@ char* YOLO_V8::TensorProcess(clock_t& starttime_1, const cv::Mat& iImg, N& blob,
         float *data = (float *) rawData.data;
 
         DL_RESULT result;
-        for (int i = 0; i < this->classes.size(); i++)
+        for (size_t i = 0; i < this->classes.size(); i++)
         {
             result.classId = i;
             result.confidence = data[i];
@@ -344,39 +346,40 @@ char* YOLO_V8::TensorProcess(clock_t& starttime_1, const cv::Mat& iImg, N& blob,
 
 char* YOLO_V8::WarmUpSession() {
     clock_t starttime_1 = clock();
-    cv::Mat iImg = cv::Mat(cv::Size(imgSize.at(0), imgSize.at(1)), CV_8UC3);
+    // cv::Size takes (width, height)
+    cv::Mat iImg = cv::Mat(cv::Size(imgSize_.at(0), imgSize_.at(1)), CV_8UC3);
     cv::Mat processedImg;
-    PreProcess(iImg, imgSize, processedImg);
-    if (modelType < 4)
+    PreProcess(iImg, imgSize_, processedImg);
+    if (modelType_ < 4)
     {
         float* blob = new float[iImg.total() * 3];
         BlobFromImage(processedImg, blob);
-        std::vector<int64_t> YOLO_input_node_dims = { 1, 3, imgSize.at(0), imgSize.at(1) };
+        std::vector<int64_t> YOLO_input_node_dims = { 1, 3, imgSize_.at(1), imgSize_.at(0) };
         Ort::Value input_tensor = Ort::Value::CreateTensor<float>(
-            Ort::MemoryInfo::CreateCpu(OrtDeviceAllocator, OrtMemTypeCPU), blob, 3 * imgSize.at(0) * imgSize.at(1),
+            Ort::MemoryInfo::CreateCpu(OrtDeviceAllocator, OrtMemTypeCPU), blob, 3 * imgSize_.at(0) * imgSize_.at(1),
             YOLO_input_node_dims.data(), YOLO_input_node_dims.size());
-        auto output_tensors = session->Run(options, inputNodeNames.data(), &input_tensor, 1, outputNodeNames.data(),
-            outputNodeNames.size());
+        auto output_tensors = session_->Run(options, inputNodeNames_.data(), &input_tensor, 1, outputNodeNames_.data(),
+            outputNodeNames_.size());
         delete[] blob;
         clock_t starttime_4 = clock();
         double post_process_time = (double)(starttime_4 - starttime_1) / CLOCKS_PER_SEC * 1000;
-        if (cudaEnable)
+        if (cudaEnable_)
         {
             std::cout << "[YOLO_V8(CUDA)]: " << "Cuda warm-up cost " << post_process_time << " ms. " << std::endl;
         }
     }
     else
     {
-#ifdef USE_CUDA
+#if defined(YOLO_ONNX_ROS_CUDA_ENABLED) && YOLO_ONNX_ROS_CUDA_ENABLED
         half* blob = new half[iImg.total() * 3];
         BlobFromImage(processedImg, blob);
-        std::vector<int64_t> YOLO_input_node_dims = { 1,3,imgSize.at(0),imgSize.at(1) };
-        Ort::Value input_tensor = Ort::Value::CreateTensor<half>(Ort::MemoryInfo::CreateCpu(OrtDeviceAllocator, OrtMemTypeCPU), blob, 3 * imgSize.at(0) * imgSize.at(1), YOLO_input_node_dims.data(), YOLO_input_node_dims.size());
-        auto output_tensors = session->Run(options, inputNodeNames.data(), &input_tensor, 1, outputNodeNames.data(), outputNodeNames.size());
+        std::vector<int64_t> YOLO_input_node_dims = { 1, 3, imgSize_.at(1), imgSize_.at(0) };
+        Ort::Value input_tensor = Ort::Value::CreateTensor<half>(Ort::MemoryInfo::CreateCpu(OrtDeviceAllocator, OrtMemTypeCPU), blob, 3 * imgSize_.at(0) * imgSize_.at(1), YOLO_input_node_dims.data(), YOLO_input_node_dims.size());
+        auto output_tensors = session_->Run(options, inputNodeNames_.data(), &input_tensor, 1, outputNodeNames_.data(), outputNodeNames_.size());
         delete[] blob;
         clock_t starttime_4 = clock();
         double post_process_time = (double)(starttime_4 - starttime_1) / CLOCKS_PER_SEC * 1000;
-        if (cudaEnable)
+        if (cudaEnable_)
         {
             std::cout << "[YOLO_V8(CUDA)]: " << "Cuda warm-up cost " << post_process_time << " ms. " << std::endl;
         }
