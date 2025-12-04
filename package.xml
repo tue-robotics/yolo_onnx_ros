@@ -13,10 +13,10 @@
 
   <buildtool_depend>catkin</buildtool_depend>
 
+  <depend>onnxruntime_ros</depend>
+
   <build_depend>libopencv-dev</build_depend>
   <exec_depend>libopencv-dev</exec_depend>
-  <build_depend>onnxruntime_ros</build_depend>
-  <exec_depend>onnxruntime_ros</exec_depend>
 
   <test_depend>catkin_lint_cmake</test_depend>
   <test_depend>google-mock</test_depend>

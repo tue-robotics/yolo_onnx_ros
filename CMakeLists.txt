@@ -26,9 +26,6 @@ if(${PROJECT_NAME}_CUDA_ENABLED)
 endif()
 
 configure_file(include/${PROJECT_NAME}/config.hpp.in ${CATKIN_DEVEL_PREFIX}/${CATKIN_GLOBAL_INCLUDE_DESTINATION}/${PROJECT_NAME}/config.hpp)
-# add_custom_target(generate_config_hpp
-#   DEPENDS ${CATKIN_DEVEL_PREFIX}/${CATKIN_GLOBAL_INCLUDE_DESTINATION}/${PROJECT_NAME}/config.hpp
-# )
 
 # ------------------------------------------------------------------------------------------------
 #                                        CATKIN EXPORT
@@ -37,7 +34,7 @@ configure_file(include/${PROJECT_NAME}/config.hpp.in ${CATKIN_DEVEL_PREFIX}/${CA
 catkin_package(
   INCLUDE_DIRS include ${CATKIN_DEVEL_PREFIX}/${CATKIN_GLOBAL_INCLUDE_DESTINATION}
   LIBRARIES ${PROJECT_NAME}
-  CATKIN_DEPENDS
+  CATKIN_DEPENDS onnxruntime_ros
   DEPENDS ${${PROJECT_NAME}_CUDA_CATKIN_DEPENDS} OpenCV
 )
 
