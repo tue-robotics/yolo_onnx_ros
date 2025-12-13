@@ -166,14 +166,9 @@ const char* YOLO_V8::CreateSession(DL_INIT_PARAM& iParams) {
     }
     catch (const std::exception& e)
     {
-        const char* str1 = "[YOLO_V8]:";
-        const char* str2 = e.what();
-        std::string result = std::string(str1) + std::string(str2);
-        char* merged = new char[result.length() + 1];
-        std::strcpy(merged, result.c_str());
-        std::cout << merged << std::endl;
-        delete[] merged;
-        return "[YOLO_V8]:Create session failed.";
+        std::string error_msg = "[YOLO_V8]: Failed to create session: " + std::string(e.what());
+        std::cout << error_msg << std::endl;
+        throw std::runtime_error(error_msg);
     }
 
 }
