@@ -76,8 +76,8 @@ TEST_F(YoloInferenceTest, CreateSessionWithValidModel)
 TEST_F(YoloInferenceTest, CreateSessionWithInvalidModel)
 {
     params.modelPath = "nonexistent_model.onnx";
-    const char* result = yolo->CreateSession(params);
-    EXPECT_NE(result, nullptr) << "CreateSession should fail with invalid model path";
+    EXPECT_THROW(yolo->CreateSession(params), std::runtime_error)
+        << "CreateSession should throw an exception with invalid model path";
 }
 
 TEST_F(YoloInferenceTest, FullInferencePipeline)
