@@ -13,6 +13,7 @@
 
   <buildtool_depend>catkin</buildtool_depend>
 
+  <depend>libconsole-bridge-dev</depend>
   <depend>onnxruntime_ros</depend>
 
   <build_depend>libopencv-dev</build_depend>

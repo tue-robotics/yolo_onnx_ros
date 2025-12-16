@@ -1,5 +1,9 @@
 #include "yolo_onnx_ros/yolo_inference.hpp"
+
+#include <console_bridge/console.h>
+
 #include <regex>
+#include <sstream>
 
 #define benchmark
 #define min(a, b) (((a) < (b)) ? (a) : (b))
@@ -118,8 +122,7 @@ const char* YOLO_V8::CreateSession(DL_INIT_PARAM& iParams) {
     bool result = std::regex_search(iParams.modelPath, pattern);
     if (result)
     {
-        Ret = "[YOLO_V8]:Your model path is error. Change your model path without chinese characters.";
-        std::cout << Ret << std::endl;
+        CONSOLE_BRIDGE_logInform("[YOLO_V8]:Your model path is error. Change your model path without chinese characters.");
         return Ret;
     }
     try
@@ -167,7 +170,7 @@ const char* YOLO_V8::CreateSession(DL_INIT_PARAM& iParams) {
     catch (const std::exception& e)
     {
         std::string error_msg = "[YOLO_V8]: Failed to create session: " + std::string(e.what());
-        std::cout << error_msg << std::endl;
+        CONSOLE_BRIDGE_logError(error_msg.c_str());
         throw std::runtime_error(error_msg);
     }
 
@@ -296,14 +299,18 @@ char* YOLO_V8::TensorProcess(clock_t& starttime_1, N& blob, std::vector<int64_t>
         double pre_process_time = (double)(starttime_2 - starttime_1) / CLOCKS_PER_SEC * 1000;
         double process_time = (double)(starttime_3 - starttime_2) / CLOCKS_PER_SEC * 1000;
         double post_process_time = (double)(starttime_4 - starttime_3) / CLOCKS_PER_SEC * 1000;
+        std::stringstream ss;
         if (cudaEnable_)
         {
-            std::cout << "[YOLO_V8(CUDA)]: " << pre_process_time << "ms pre-process, " << process_time << "ms inference, " << post_process_time << "ms post-process." << std::endl;
+
+            ss << "[YOLO_V8(CUDA)]: ";
         }
         else
         {
-            std::cout << "[YOLO_V8(CPU)]: " << pre_process_time << "ms pre-process, " << process_time << "ms inference, " << post_process_time << "ms post-process." << std::endl;
+            ss << "[YOLO_V8(CPU)]: ";
         }
+        ss << pre_process_time << "ms pre-process, " << process_time << "ms inference, " << post_process_time << "ms post-process." << std::endl;
+        CONSOLE_BRIDGE_logInform(ss.str().c_str());
 #endif // benchmark
 
         break;
@@ -332,7 +339,7 @@ char* YOLO_V8::TensorProcess(clock_t& starttime_1, N& blob, std::vector<int64_t>
         break;
     }
     default:
-        std::cout << "[YOLO_V8]: " << "Not support model type." << std::endl;
+        CONSOLE_BRIDGE_logError("[YOLO_V8]: Not support model type.");
     }
     return RET_OK;
 
@@ -360,7 +367,7 @@ char* YOLO_V8::WarmUpSession() {
         double post_process_time = (double)(starttime_4 - starttime_1) / CLOCKS_PER_SEC * 1000;
         if (cudaEnable_)
         {
-            std::cout << "[YOLO_V8(CUDA)]: " << "Cuda warm-up cost " << post_process_time << " ms. " << std::endl;
+            CONSOLE_BRIDGE_logInform("[YOLO_V8(CUDA)]: CUDA warm-up cost %f ms.", post_process_time);
         }
     }
     else
@@ -376,7 +383,7 @@ char* YOLO_V8::WarmUpSession() {
         double post_process_time = (double)(starttime_4 - starttime_1) / CLOCKS_PER_SEC * 1000;
         if (cudaEnable_)
         {
-            std::cout << "[YOLO_V8(CUDA)]: " << "Cuda warm-up cost " << post_process_time << " ms. " << std::endl;
+            CONSOLE_BRIDGE_logInform("[YOLO_V8(CUDA)]: CUDA warm-up cost %f ms.", post_process_time);
         }
 #endif
     }
