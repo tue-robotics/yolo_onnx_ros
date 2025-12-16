@@ -1,9 +1,7 @@
-#include <iostream>
-#include <iomanip>
 #include "yolo_onnx_ros/detection.hpp"
+
 #include <filesystem>
-#include <fstream>
-#include <random>
+#include <iostream>
 
 int main(int argc, char *argv[])
 {
@@ -21,7 +19,7 @@ int main(int argc, char *argv[])
     std::tie(yoloDetector, params) = Initialize(model_name);
 
     std::filesystem::path imgs_path = argv[2];
-    for (auto& i : std::filesystem::directory_iterator(imgs_path))
+    for (const auto& i : std::filesystem::directory_iterator(imgs_path))
     {
         if (i.path().extension() == ".jpg" || i.path().extension() == ".png" || i.path().extension() == ".jpeg")
         {

@@ -1,6 +1,8 @@
 #include "yolo_onnx_ros/detection.hpp"
 #include <yolo_onnx_ros/config.hpp>
 
+#include <console_bridge/console.h>
+
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -94,7 +96,7 @@ int ReadYaml(const std::filesystem::path& filename, std::unique_ptr<YOLO_V8>& p)
     std::ifstream file(filename);
     if (!file.is_open())
     {
-        std::cerr << "[ReadYaml] Failed to open: " << filename << std::endl;
+        CONSOLE_BRIDGE_logError("[ReadYaml] Failed to open: %s", filename.c_str());
         return 1;
     }
 
@@ -128,7 +130,7 @@ int ReadYaml(const std::filesystem::path& filename, std::unique_ptr<YOLO_V8>& p)
 
     if (!in_names_section || start >= lines.size())
     {
-        std::cerr << "[ReadYaml] Could not find 'names:' section in " << filename << std::endl;
+        CONSOLE_BRIDGE_logError("[ReadYaml] Could not find 'names:' section in %s", filename.c_str());
         return 1;
     }
 
@@ -166,12 +168,12 @@ int ReadYaml(const std::filesystem::path& filename, std::unique_ptr<YOLO_V8>& p)
 
     if (names.empty())
     {
-        std::cerr << "[ReadYaml] No class names found in " << filename << std::endl;
+        CONSOLE_BRIDGE_logError("[ReadYaml] No class names found in %s", filename.c_str());
         return 1;
     }
 
     p->classes = names;
-    std::cout << "[ReadYaml] Loaded " << names.size() << " classes from " << filename << std::endl;
+    CONSOLE_BRIDGE_logInform("[ReadYaml] Loaded %u classes from %s", names.size(), filename.c_str());
     return 0;
 }
 
