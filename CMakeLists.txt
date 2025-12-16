@@ -9,13 +9,13 @@ add_compile_options(-Wextra -Werror=extra)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-
-find_package(OpenCV REQUIRED)
 find_package(catkin REQUIRED
   COMPONENTS
   onnxruntime_ros
 )
 
+find_package(console_bridge REQUIRED)
+find_package(OpenCV REQUIRED)
 
 set(${PROJECT_NAME}_CUDA_ENABLED ${onnxruntime_ros_CUDA_ENABLED})
 if(${PROJECT_NAME}_CUDA_ENABLED)
@@ -35,7 +35,7 @@ catkin_package(
   INCLUDE_DIRS include ${CATKIN_DEVEL_PREFIX}/${CATKIN_GLOBAL_INCLUDE_DESTINATION}
   LIBRARIES ${PROJECT_NAME}
   CATKIN_DEPENDS onnxruntime_ros
-  DEPENDS ${${PROJECT_NAME}_CUDA_CATKIN_DEPENDS} OpenCV
+  DEPENDS ${${PROJECT_NAME}_CUDA_CATKIN_DEPENDS} OpenCV console_bridge
 )
 
 # ------------------------------------------------------------------------------------------------
@@ -47,6 +47,7 @@ include_directories(
   ${CATKIN_DEVEL_PREFIX}/${CATKIN_GLOBAL_INCLUDE_DESTINATION}
   SYSTEM
   ${${PROJECT_NAME}_CUDA_INCLUDE_DIRS}
+  ${console_bridge_INCLUDE_DIRS}
   ${OpenCV_INCLUDE_DIRS}
   ${catkin_INCLUDE_DIRS}
 )
@@ -55,7 +56,7 @@ add_library(${PROJECT_NAME}
   src/detection.cpp
   src/yolo_inference.cpp
 )
-target_link_libraries(${PROJECT_NAME} ${${PROJECT_NAME}_CUDA_TARGET_LINK_LIBRARIES} ${OpenCV_LIBRARIES} ${catkin_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} ${${PROJECT_NAME}_CUDA_TARGET_LINK_LIBRARIES} ${console_bridge_LIBRARIES} ${OpenCV_LIBRARIES} ${catkin_LIBRARIES})
 # add_dependencies(${PROJECT_NAME} generate_config_hpp)
 
 add_executable(test_${PROJECT_NAME}
