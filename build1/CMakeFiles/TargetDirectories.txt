@@ -1,0 +1,8 @@
+/mnt/c/COURSES/roboTeam/optimization/yolo_onnx_ros/build1/CMakeFiles/install/strip.dir
+/mnt/c/COURSES/roboTeam/optimization/yolo_onnx_ros/build1/CMakeFiles/install/local.dir
+/mnt/c/COURSES/roboTeam/optimization/yolo_onnx_ros/build1/CMakeFiles/install.dir
+/mnt/c/COURSES/roboTeam/optimization/yolo_onnx_ros/build1/CMakeFiles/list_install_components.dir
+/mnt/c/COURSES/roboTeam/optimization/yolo_onnx_ros/build1/CMakeFiles/rebuild_cache.dir
+/mnt/c/COURSES/roboTeam/optimization/yolo_onnx_ros/build1/CMakeFiles/edit_cache.dir
+/mnt/c/COURSES/roboTeam/optimization/yolo_onnx_ros/build1/CMakeFiles/test_yolo_onnx_ros.dir
+/mnt/c/COURSES/roboTeam/optimization/yolo_onnx_ros/build1/CMakeFiles/yolo_onnx_ros.dir
