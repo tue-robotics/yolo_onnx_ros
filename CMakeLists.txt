@@ -5,6 +5,7 @@ project(yolo_onnx_ros)
 message(STATUS "Binary dir: ${CMAKE_CURRENT_BINARY_DIR}")
 
 add_compile_options(-Wall -Wextra)
+add_compile_definitions(LOGGING)
 
 # -------------- Support C++17 for using filesystem  ------------------#
 set(CMAKE_CXX_STANDARD 17)
