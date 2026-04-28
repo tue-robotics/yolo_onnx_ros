@@ -1,124 +1,112 @@
-# YOLOv8 OnnxRuntime C++
+# yolo_onnx_ros
 
-<img alt="C++" src="https://img.shields.io/badge/C++-17-blue.svg?style=flat&logo=c%2B%2B"> <img alt="Onnx-runtime" src="https://img.shields.io/badge/OnnxRuntime-717272.svg?logo=Onnx&logoColor=white">
+C++ YOLO object detection with two backends:
+- **CPU (default)** — ONNX Runtime, runs on any machine
+- **GPU** — TensorRT, sub-2ms inference on NVIDIA GPUs
 
+## Project Structure
 
-
-This algorithm is inspired by [Ultralitics](https://github.com/ultralytics/ultralytics/tree/main/examples/YOLOv8-ONNXRuntime-CPP) implementation to perform inference using YOLOv8 (we also supports v11) in C++ with ONNX Runtime and OpenCV's API.
-
-## Benefits ✨
-
-- Friendly for deployment in the industrial sector.
-- Faster than OpenCV's DNN inference on both CPU and GPU.
-- Supports FP32 and FP16 CUDA acceleration.
-
-## Note ☕
-
-1. Benefit for Ultralytics' latest release, a `Transpose` op is added to the YOLOv8 model, while make v8 and v5 has the same output shape. Therefore, you can run inference with YOLOv5/v7/v8 via this project.
-
-## Exporting YOLOv8 Models 📦
-
-To export YOLOv8 models, use the following Python script:
-
-```python
-from ultralytics import YOLO
-
-# Load a YOLOv8 model
-model = YOLO("yolov8n.pt")
-
-# Export the model
-model.export(format="onnx", opset=12, simplify=True, dynamic=False, imgsz=640)
+```
+yolo_onnx_ros/
+├── CMakeLists.txt
+├── images/                          # Test images
+├── include/
+│   ├── yolo_onnx_ros/               # ONNX backend headers
+│   │   ├── config.hpp.in
+│   │   ├── detection.hpp
+│   │   └── yolo_inference.hpp
+│   └── yolos/                       # TensorRT backend (header-only)
+│       ├── core/                    # Engine, CUDA preprocessing, NMS, drawing
+│       └── tasks/detection.hpp      # TRT detection API
+└── src/
+    ├── detection.cpp                # ONNX backend implementation
+    ├── yolo_inference.cpp           # ONNX backend implementation
+    ├── main.cpp                     # ONNX entry point
+    └── main_trt.cpp                 # TensorRT entry point
 ```
 
-Alternatively, you can use the following command for exporting the model in the terminal
+## Dependencies
 
+### CPU backend (always required)
+| Dependency | Version | Install |
+|---|---|---|
+| CMake | ≥ 3.5 | `sudo apt install cmake` |
+| OpenCV | ≥ 4.5 | `sudo apt install libopencv-dev` |
+| console_bridge | any | `sudo apt install libconsole-bridge-dev` |
+| ONNX Runtime | ≥ 1.16 | [Download from GitHub releases](https://github.com/microsoft/onnxruntime/releases) |
+
+### GPU backend (required only when `CUDA_ENABLED=ON`)
+| Dependency | Version | Install |
+|---|---|---|
+| CUDA Toolkit | ≥ 12.0 | `sudo apt install nvidia-cuda-toolkit` |
+| TensorRT | ≥ 10.0 | `sudo apt install libnvinfer-dev libnvinfer-headers-dev` |
+| NVIDIA GPU | CC ≥ 7.5 | Driver managed by Windows (WSL2) |
+
+### Install ONNX Runtime
 ```bash
-yolo export model=yolov8n.pt opset=12 simplify=True dynamic=False format=onnx imgsz=640,640
+wget https://github.com/microsoft/onnxruntime/releases/download/v1.20.1/onnxruntime-linux-x64-1.20.1.tgz
+tar -xzf onnxruntime-linux-x64-1.20.1.tgz
+sudo cp -r onnxruntime-linux-x64-1.20.1/include /usr/local/onnxruntime/
+sudo cp -r onnxruntime-linux-x64-1.20.1/lib     /usr/local/onnxruntime/
+echo '/usr/local/onnxruntime/lib' | sudo tee /etc/ld.so.conf.d/onnxruntime.conf
+sudo ldconfig
 ```
 
-## Exporting YOLOv8 FP16 Models 📦
-
-```python
-import onnx
-from onnxconverter_common import float16
-
-model = onnx.load(R"YOUR_ONNX_PATH")
-model_fp16 = float16.convert_float_to_float16(model)
-onnx.save(model_fp16, R"YOUR_FP16_ONNX_PATH")
+### Install TensorRT (Ubuntu 24.04)
+```bash
+wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/cuda-keyring_1.1-1_all.deb
+sudo dpkg -i cuda-keyring_1.1-1_all.deb
+sudo apt update
+sudo apt install -y libnvinfer-dev libnvinfer-headers-dev
 ```
 
-## Download COCO.yaml file 📂
+## Build
 
-In order to run example, you also need to download coco.yaml. You can download the file manually from [here](https://raw.githubusercontent.com/ultralytics/ultralytics/main/ultralytics/cfg/datasets/coco.yaml)
+### CPU-only (ONNX Runtime)
+```bash
+mkdir build && cd build
+cmake .. -DONNXRUNTIME_ROOT=/usr/local/onnxruntime
+make -j4
+```
 
-## Dependencies ⚙️
+### GPU (TensorRT)
+```bash
+mkdir build && cd build
+cmake .. -DONNXRUNTIME_ROOT=/usr/local/onnxruntime -DCUDA_ENABLED=ON
+make -j4
+```
 
-| Dependency                       | Version       |
-| -------------------------------- | ------------- |
-| Onnxruntime(linux,windows,macos) | >=1.14.1      |
-| OpenCV                           | >=4.0.0       |
-| C++ Standard                     | >=17          |
-| Cmake                            | >=3.5         |
-| Cuda (Optional)                  |  =12.8        |
-| cuDNN (Cuda required)            | =9            |
+If TensorRT is installed to a non-standard path:
+```bash
+cmake .. -DONNXRUNTIME_ROOT=/usr/local/onnxruntime -DCUDA_ENABLED=ON -DTENSORRT_ROOT=/path/to/tensorrt
+```
 
-Note: The dependency on C++17 is due to the usage of the C++17 filesystem feature.
+## Run
 
-Note (2): Due to ONNX Runtime, we need to use CUDA 12.8 and cuDNN 9. Keep in mind that this requirement might change in the future.
+### CPU (ONNX Runtime)
+The model is downloaded automatically during cmake. Pass an image directory:
+```bash
+LD_LIBRARY_PATH=/usr/local/onnxruntime/lib ./test_yolo_onnx_ros resources/yolo11m/yolo11m.onnx /path/to/images
+```
 
-## Build 🛠️
+To see detections printed and drawn, rebuild with logging enabled:
+```bash
+cmake .. -DONNXRUNTIME_ROOT=/usr/local/onnxruntime -DCMAKE_CXX_FLAGS="-DLOGGING"
+make -j4
+```
 
-1. Clone the repository to your local machine.
+### GPU (TensorRT)
+TensorRT requires a `.trt` engine file. Convert from ONNX first:
+```bash
+# Install conversion tools
+pip install ultralytics
+python -c "from ultralytics import YOLO; YOLO('yolo11n.pt').export(format='onnx')"
 
-2. Navigate to the root directory of the repository.
+# Convert to TRT engine
+trtexec --onnx=yolo11n.onnx --saveEngine=yolo11n.trt --fp16
+```
 
-3. Create a build directory and navigate to it:
-
-   ```console
-   mkdir build && cd build
-   ```
-
-4. Run CMake to generate the build files:
-
-   ```console
-   cmake ..
-   ```
-
-   **Notice**:
-
-   If you encounter an error indicating that the `ONNXRUNTIME_ROOT` variable is not set correctly, you can resolve this by building the project using the appropriate command tailored to your system.
-
-   ```console
-   # compiled in a linux system
-   cmake -D LINUX=TRUE ..
-   ```
-
-5. Build the project:
-
-   ```console
-   make
-   ```
-
-6. The built executable should now be located in the `build` directory.
-
-## Usage 🚀
-To run from main just run the executable.
-To run the detector on you C++ application:
-```c++
-//To run the detector add on you C++ application:
-std::vector<DL_RESULT> results;
-std::unique_ptr<YOLO_V8> yoloDetector = Initialize();
-results = DetectObjects(yoloDetector, img);
-
-//You can change your param as you like (inside the Initialize() function)
-//Pay attention to your device and the onnx model type(fp32 or fp16)
-DL_INIT_PARAM params;
-params.rectConfidenceThreshold = 0.1;
-params.iouThreshold = 0.5;
-params.modelPath = "yolov8n.onnx";
-params.imgSize = { 640, 640 };
-params.cudaEnable = true;
-params.modelType = YOLO_DETECT_V8;
-yoloDetector->CreateSession(params);
-Detector(yoloDetector);
+Then run:
+```bash
+./test_yolo_onnx_ros_trt yolo11n.trt coco.names /path/to/images
 ```

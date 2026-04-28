@@ -1,2 +1,0 @@
-/usr/bin/ar qc libyolo_onnx_ros.a  CMakeFiles/yolo_onnx_ros.dir/src/detection.cpp.o CMakeFiles/yolo_onnx_ros.dir/src/yolo_inference.cpp.o
-/usr/bin/ranlib libyolo_onnx_ros.a
