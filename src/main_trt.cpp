@@ -1,7 +1,12 @@
 #include "yolos/tasks/detection.hpp"
 
+#include <algorithm>
+#include <chrono>
+#include <cmath>
 #include <filesystem>
 #include <iostream>
+#include <numeric>
+#include <vector>
 
 int main(int argc, char* argv[])
 {
@@ -32,6 +37,8 @@ int main(int argc, char* argv[])
 
     yolos::det::YOLODetector detector(engine_path, labels_path);
 
+    std::vector<double> frame_times;
+    int frame_count = 0;
     for (const auto& entry : std::filesystem::directory_iterator(imgs_path))
     {
         const auto& ext = entry.path().extension();
@@ -45,24 +52,40 @@ int main(int argc, char* argv[])
             continue;
         }
 
+        auto t0 = std::chrono::high_resolution_clock::now();
         auto detections = detector.detect(img);
+        auto t1 = std::chrono::high_resolution_clock::now();
+        double ms = std::chrono::duration<double, std::milli>(t1 - t0).count();
 
-        for (const auto& det : detections)
-        {
-            std::cout << "Image: "      << entry.path().filename().string()
-                      << "  class_id: " << det.classId
-                      << "  conf: "     << det.conf
-                      << "  box: ["     << det.box.x << "," << det.box.y
-                      << " "           << det.box.width << "x" << det.box.height
-                      << "]" << std::endl;
-        }
+        ++frame_count;
+        // skip first frame from stats — TRT kernel caching outlier
+        if (frame_count > 1)
+            frame_times.push_back(ms);
 
-        detector.drawDetections(img, detections);
-        cv::imshow("TRT Detection", img);
-        if (cv::waitKey(0) == 27)  // ESC to quit
-            break;
+        std::cout << "[" << frame_count << "] " << entry.path().filename().string()
+                  << " : " << ms << " ms"
+                  << "  detections: " << detections.size()
+                  << (frame_count == 1 ? "  (warm-up, excluded from stats)" : "")
+                  << std::endl;
     }
 
-    cv::destroyAllWindows();
+    if (!frame_times.empty())
+    {
+        double total = std::accumulate(frame_times.begin(), frame_times.end(), 0.0);
+        double avg = total / frame_times.size();
+        double min = *std::min_element(frame_times.begin(), frame_times.end());
+        double max = *std::max_element(frame_times.begin(), frame_times.end());
+        double sq_sum = std::inner_product(frame_times.begin(), frame_times.end(), frame_times.begin(), 0.0);
+        double stddev = std::sqrt(sq_sum / frame_times.size() - avg * avg);
+
+        std::cout << "\n--- Summary (excl. first frame) ---\n"
+                  << "Frames : " << frame_times.size() << "\n"
+                  << "Avg    : " << avg    << " ms  (" << 1000.0 / avg    << " FPS)\n"
+                  << "Min    : " << min    << " ms\n"
+                  << "Max    : " << max    << " ms\n"
+                  << "StdDev : " << stddev << " ms\n"
+                  << "-----------------------------------" << std::endl;
+    }
+
     return 0;
 }
