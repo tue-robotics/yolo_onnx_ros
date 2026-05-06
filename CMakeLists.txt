@@ -5,6 +5,7 @@ project(yolo_onnx_ros)
 message(STATUS "Binary dir: ${CMAKE_CURRENT_BINARY_DIR}")
 
 add_compile_options(-Wall -Wextra)
+add_compile_definitions(LOGGING)
 
 # -------------- Support C++17 for using filesystem  ------------------#
 set(CMAKE_CXX_STANDARD 17)
@@ -17,14 +18,44 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(OpenCV REQUIRED)
 find_package(console_bridge REQUIRED)
 
-# Optional CUDA support (disabled by default; enable with -DCUDA_ENABLED=ON)
-option(CUDA_ENABLED "Enable CUDA/ONNX CUDA execution provider" OFF)
+# Optional CUDA/TensorRT support (disabled by default; enable with -DCUDA_ENABLED=ON)
+option(CUDA_ENABLED "Enable CUDA/TensorRT execution provider" OFF)
 set(${PROJECT_NAME}_CUDA_INCLUDE_DIRS "")
 set(${PROJECT_NAME}_CUDA_TARGET_LINK_LIBRARIES "")
 if(CUDA_ENABLED)
   find_package(CUDAToolkit REQUIRED)
   set(${PROJECT_NAME}_CUDA_INCLUDE_DIRS "${CUDAToolkit_INCLUDE_DIRS}")
   set(${PROJECT_NAME}_CUDA_TARGET_LINK_LIBRARIES "CUDA::cudart")
+
+  # TensorRT (set TENSORRT_ROOT if installed to a non-standard prefix)
+  find_path(TENSORRT_INCLUDE_DIR
+    NAMES NvInfer.h
+    HINTS
+      "${TENSORRT_ROOT}/include"
+      /usr/local/include
+      /usr/include
+      /usr/include/x86_64-linux-gnu
+  )
+  find_library(TENSORRT_NVINFER
+    NAMES nvinfer
+    HINTS "${TENSORRT_ROOT}/lib" /usr/local/lib /usr/lib /usr/lib/x86_64-linux-gnu
+  )
+  find_library(TENSORRT_NVONNXPARSER
+    NAMES nvonnxparser
+    HINTS "${TENSORRT_ROOT}/lib" /usr/local/lib /usr/lib /usr/lib/x86_64-linux-gnu
+  )
+  if(NOT TENSORRT_INCLUDE_DIR OR NOT TENSORRT_NVINFER)
+    message(FATAL_ERROR
+      "TensorRT not found.\n"
+      "Download from https://developer.nvidia.com/tensorrt and extract, "
+      "then re-run cmake with -DTENSORRT_ROOT=<path>.")
+  endif()
+  message(STATUS "TensorRT include dir : ${TENSORRT_INCLUDE_DIR}")
+  message(STATUS "TensorRT nvinfer     : ${TENSORRT_NVINFER}")
+  set(${PROJECT_NAME}_TRT_LIBRARIES ${TENSORRT_NVINFER})
+  if(TENSORRT_NVONNXPARSER)
+    list(APPEND ${PROJECT_NAME}_TRT_LIBRARIES ${TENSORRT_NVONNXPARSER})
+  endif()
 endif()
 
 # ONNX Runtime (set ONNXRUNTIME_ROOT if installed to a non-standard prefix)
@@ -83,6 +114,9 @@ include_directories(
   ${console_bridge_INCLUDE_DIRS}
   ${OpenCV_INCLUDE_DIRS}
 )
+if(CUDA_ENABLED)
+  include_directories(SYSTEM ${TENSORRT_INCLUDE_DIR})
+endif()
 
 add_library(${PROJECT_NAME}
   src/detection.cpp
@@ -95,13 +129,40 @@ target_link_libraries(${PROJECT_NAME}
   ${OpenCV_LIBRARIES}
 )
 
-add_executable(test_${PROJECT_NAME}
-  src/main.cpp
-)
-target_link_libraries(test_${PROJECT_NAME}
-  ${PROJECT_NAME}
-  ${OpenCV_LIBRARIES}
-)
+if(CUDA_ENABLED)
+  enable_language(CUDA)
+  # Auto-detect GPU architecture on the build machine (requires CMake >= 3.24)
+  set(CMAKE_CUDA_ARCHITECTURES native)
+  add_executable(test_${PROJECT_NAME}
+    src/main.cpp
+    include/yolos/core/cuda_preprocessing.cu
+  )
+  set_target_properties(test_${PROJECT_NAME} PROPERTIES
+    CUDA_SEPARABLE_COMPILATION ON
+    CUDA_ARCHITECTURES native
+    CXX_STANDARD 17
+  )
+  target_include_directories(test_${PROJECT_NAME} PRIVATE
+    include
+    ${TENSORRT_INCLUDE_DIR}
+    ${CUDAToolkit_INCLUDE_DIRS}
+    ${OpenCV_INCLUDE_DIRS}
+  )
+  target_link_libraries(test_${PROJECT_NAME}
+    ${PROJECT_NAME}
+    ${${PROJECT_NAME}_TRT_LIBRARIES}
+    ${${PROJECT_NAME}_CUDA_TARGET_LINK_LIBRARIES}
+    ${OpenCV_LIBRARIES}
+  )
+else()
+  add_executable(test_${PROJECT_NAME}
+    src/main.cpp
+  )
+  target_link_libraries(test_${PROJECT_NAME}
+    ${PROJECT_NAME}
+    ${OpenCV_LIBRARIES}
+  )
+endif()
 
 # ------------------------------------------------------------------------------------------------
 #                                        MODEL RESOURCES
@@ -142,6 +203,7 @@ install(
   TARGETS test_${PROJECT_NAME}
   DESTINATION bin
 )
+
 install(
   DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/resources
   DESTINATION share/${PROJECT_NAME}
