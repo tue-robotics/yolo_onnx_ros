@@ -2,16 +2,17 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Debug Yolo Model",
+            "name": "Debug Yolo Model (ONNX)",
             "type": "cppdbg",
             "request": "launch",
-            "program": "/home/ana/yolo_onnx_ros/build/test_yolo_onnx_ros", // Path to the executable
+            "program": "/home/ana/yolo_onnx_ros/build/test_yolo_onnx_ros",
             "args": [
                 "/home/ana/yolo_onnx_ros/models/yolo11m.onnx",
-                "/home/ana/yolo_onnx_ros/images"
-                ], // Add any command-line arguments for your program here
+                "/home/ana/yolo_onnx_ros/images",
+                "--backend=onnx"
+            ],
             "stopAtEntry": false,
-            "cwd": "${workspaceFolder}/build", // Set the working directory
+            "cwd": "${workspaceFolder}/build",
             "environment": [
                 {
                     "name": "LD_LIBRARY_PATH",
@@ -27,16 +28,46 @@
                     "ignoreFailures": true
                 }
             ],
-            //"preLaunchTask": "build-yolo-project" // Ensure the project is built before debugging
+            //"preLaunchTask": "build-yolo-project"
+        },
+        {
+            "name": "Debug Yolo Model (TensorRT)",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "/home/ana/yolo_onnx_ros/build/test_yolo_onnx_ros",
+            "args": [
+                "/home/ana/yolo_onnx_ros/models/yolo11m.trt",
+                "/home/ana/yolo_onnx_ros/images",
+                "--backend=tensorrt",
+                "--labels=/home/ana/yolo_onnx_ros/models/coco.names"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/build",
+            "environment": [
+                {
+                    "name": "LD_LIBRARY_PATH",
+                    "value": "/usr/lib/wsl/lib:${env:LD_LIBRARY_PATH}"
+                }
+            ],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ],
+            //"preLaunchTask": "build-yolo-project"
         },
         {
             "name": "Debug Yolo Test",
             "type": "cppdbg",
             "request": "launch",
-            "program": "/home/ana/yolo_onnx_ros/build/yolo_test", // Path to the executable
-            "args": [], // Add any command-line arguments for your program here
+            "program": "/home/ana/yolo_onnx_ros/build/yolo_test",
+            "args": [],
             "stopAtEntry": false,
-            "cwd": "${workspaceFolder}/build", // Set the working directory
+            "cwd": "${workspaceFolder}/build",
             "environment": [],
             "externalConsole": false,
             "MIMode": "gdb",
@@ -47,7 +78,7 @@
                     "ignoreFailures": true
                 }
             ],
-            //"preLaunchTask": "build-yolo-project" // Ensure the project is built before debugging
+            //"preLaunchTask": "build-yolo-project"
         }
     ]
 }

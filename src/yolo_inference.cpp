@@ -231,67 +231,100 @@ char* YOLO_V8::TensorProcess(clock_t& starttime_1, N& blob, std::vector<int64_t>
     case YOLO_DETECT_V8:
     case YOLO_DETECT_V8_HALF:
     {
-        int signalResultNum = outputNodeDims[1]; // Dataset-specific: e.g., 605 for OIV7 (4 bbox + 601 classes), 84 for COCO (4 bbox + 80 classes)
-        int strideNum = outputNodeDims[2];        // 8400
-        int numClasses = signalResultNum - 4;     // 601 for OIV7, 80 for COCO (4 rows are bbox)
-        std::vector<int> class_ids;
-        std::vector<float> confidences;
-        std::vector<cv::Rect> boxes;
+        // Auto-detect output format:
+        //   NMS-free (YOLO26 default): [1, num_detections, 6]  — x1,y1,x2,y2,conf,class_id (xyxy, already filtered)
+        //   Standard (YOLO11/V8):      [1, nc+4, 8400]         — cx,cy,w,h,class_scores... (cxcywh, needs NMS)
+        const bool isNMSFree = (outputNodeDims.size() == 3 && outputNodeDims[2] == 6);
+
         cv::Mat rawData;
         if (modelType_ == YOLO_DETECT_V8)
         {
-            // FP32
-            rawData = cv::Mat(signalResultNum, strideNum, CV_32F, output);
+            if (isNMSFree)
+                rawData = cv::Mat((int)outputNodeDims[1], 6, CV_32F, output);
+            else
+                rawData = cv::Mat((int)outputNodeDims[1], (int)outputNodeDims[2], CV_32F, output);
         }
         else
         {
-            // FP16
-            rawData = cv::Mat(signalResultNum, strideNum, CV_16F, output);
-            rawData.convertTo(rawData, CV_32F);
-        }
-        // Note:
-        // ultralytics add transpose operator to the output of yolov8 model.which make yolov8/v5/v7 has same shape
-        // https://github.com/ultralytics/assets/releases/download/v8.3.0/yolov8n.pt
-        rawData = rawData.t();
-
-        float* data = (float*)rawData.data;
-
-        for (int i = 0; i < strideNum; ++i)
-        {
-            float* classesScores = data + 4;
-            cv::Mat scores(1, numClasses, CV_32FC1, classesScores);  // Use numClasses instead of this->classes.size()
-            cv::Point class_id;
-            double maxClassScore;
-            cv::minMaxLoc(scores, 0, &maxClassScore, 0, &class_id);
-            if (maxClassScore > rectConfidenceThreshold_)
+            if (isNMSFree)
             {
-                confidences.push_back(maxClassScore);
-                class_ids.push_back(class_id.x);
-                float x = data[0];
-                float y = data[1];
-                float w = data[2];
-                float h = data[3];
-
-                int left = int((x - 0.5 * w) * resizeScales_);
-                int top = int((y - 0.5 * h) * resizeScales_);
-
-                int width = int(w * resizeScales_);
-                int height = int(h * resizeScales_);
-
-                boxes.push_back(cv::Rect(left, top, width, height));
+                rawData = cv::Mat((int)outputNodeDims[1], 6, CV_16F, output);
+                rawData.convertTo(rawData, CV_32F);
             }
-            data += signalResultNum;
+            else
+            {
+                rawData = cv::Mat((int)outputNodeDims[1], (int)outputNodeDims[2], CV_16F, output);
+                rawData.convertTo(rawData, CV_32F);
+            }
         }
-        std::vector<int> nmsResult;
-        cv::dnn::NMSBoxes(boxes, confidences, rectConfidenceThreshold_, iouThreshold_, nmsResult);
-        for (size_t i = 0; i < nmsResult.size(); ++i)
+
+        if (isNMSFree)
         {
-            int idx = nmsResult[i];
-            DL_RESULT result;
-            result.classId = class_ids[idx];
-            result.confidence = confidences[idx];
-            result.box = boxes[idx];
-            oResult.push_back(result);
+            // YOLO26 NMS-free: each row = [x1, y1, x2, y2, confidence, class_id]
+            // Coordinates are in the resized (padded) image space — scale back to original.
+            float* data = (float*)rawData.data;
+            int numDetections = (int)outputNodeDims[1];
+            for (int i = 0; i < numDetections; ++i)
+            {
+                float conf     = data[4];
+                if (conf > rectConfidenceThreshold_)
+                {
+                    int left   = int(data[0] * resizeScales_);
+                    int top    = int(data[1] * resizeScales_);
+                    int width  = int((data[2] - data[0]) * resizeScales_);
+                    int height = int((data[3] - data[1]) * resizeScales_);
+                    DL_RESULT result;
+                    result.classId   = (int)data[5];
+                    result.confidence = conf;
+                    result.box       = cv::Rect(left, top, width, height);
+                    oResult.push_back(result);
+                }
+                data += 6;
+            }
+        }
+        else
+        {
+            // Standard YOLO (V8/V11): [1, nc+4, 8400] — transpose → [8400, nc+4], then NMS
+            // Note: ultralytics adds a transpose op so yolov8/v5/v7 share this shape.
+            int signalResultNum = (int)outputNodeDims[1]; // nc+4
+            int strideNum       = (int)outputNodeDims[2]; // 8400
+            int numClasses      = signalResultNum - 4;
+            rawData = rawData.t();
+            float* data = (float*)rawData.data;
+
+            std::vector<int> class_ids;
+            std::vector<float> confidences;
+            std::vector<cv::Rect> boxes;
+
+            for (int i = 0; i < strideNum; ++i)
+            {
+                float* classesScores = data + 4;
+                cv::Mat scores(1, numClasses, CV_32FC1, classesScores);
+                cv::Point class_id;
+                double maxClassScore;
+                cv::minMaxLoc(scores, 0, &maxClassScore, 0, &class_id);
+                if (maxClassScore > rectConfidenceThreshold_)
+                {
+                    confidences.push_back((float)maxClassScore);
+                    class_ids.push_back(class_id.x);
+                    float x = data[0], y = data[1], w = data[2], h = data[3];
+                    int left   = int((x - 0.5f * w) * resizeScales_);
+                    int top    = int((y - 0.5f * h) * resizeScales_);
+                    boxes.push_back(cv::Rect(left, top, int(w * resizeScales_), int(h * resizeScales_)));
+                }
+                data += signalResultNum;
+            }
+            std::vector<int> nmsResult;
+            cv::dnn::NMSBoxes(boxes, confidences, rectConfidenceThreshold_, iouThreshold_, nmsResult);
+            for (size_t i = 0; i < nmsResult.size(); ++i)
+            {
+                int idx = nmsResult[i];
+                DL_RESULT result;
+                result.classId    = class_ids[idx];
+                result.confidence = confidences[idx];
+                result.box        = boxes[idx];
+                oResult.push_back(result);
+            }
         }
 
 #ifdef benchmark

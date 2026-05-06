@@ -129,40 +129,42 @@ target_link_libraries(${PROJECT_NAME}
   ${OpenCV_LIBRARIES}
 )
 
-add_executable(test_${PROJECT_NAME}
-  src/main.cpp
-)
-target_link_libraries(test_${PROJECT_NAME}
-  ${PROJECT_NAME}
-  ${OpenCV_LIBRARIES}
-)
-
-# TensorRT executable (only built when CUDA_ENABLED=ON)
 if(CUDA_ENABLED)
   enable_language(CUDA)
   # Auto-detect GPU architecture on the build machine (requires CMake >= 3.24)
   set(CMAKE_CUDA_ARCHITECTURES native)
-  add_executable(test_${PROJECT_NAME}_trt
-    src/main_trt.cpp
+  add_executable(test_${PROJECT_NAME}
+    src/main.cpp
     include/yolos/core/cuda_preprocessing.cu
   )
-  set_target_properties(test_${PROJECT_NAME}_trt PROPERTIES
+  set_target_properties(test_${PROJECT_NAME} PROPERTIES
     CUDA_SEPARABLE_COMPILATION ON
     CUDA_ARCHITECTURES native
     CXX_STANDARD 17
   )
-  target_include_directories(test_${PROJECT_NAME}_trt PRIVATE
+  target_include_directories(test_${PROJECT_NAME} PRIVATE
     include
     ${TENSORRT_INCLUDE_DIR}
     ${CUDAToolkit_INCLUDE_DIRS}
     ${OpenCV_INCLUDE_DIRS}
   )
-  target_link_libraries(test_${PROJECT_NAME}_trt
+  target_link_libraries(test_${PROJECT_NAME}
+    ${PROJECT_NAME}
     ${${PROJECT_NAME}_TRT_LIBRARIES}
     ${${PROJECT_NAME}_CUDA_TARGET_LINK_LIBRARIES}
     ${OpenCV_LIBRARIES}
   )
+else()
+  add_executable(test_${PROJECT_NAME}
+    src/main.cpp
+  )
+  target_link_libraries(test_${PROJECT_NAME}
+    ${PROJECT_NAME}
+    ${OpenCV_LIBRARIES}
+  )
 endif()
+
+
 
 # ------------------------------------------------------------------------------------------------
 #                                        MODEL RESOURCES
@@ -203,12 +205,7 @@ install(
   TARGETS test_${PROJECT_NAME}
   DESTINATION bin
 )
-if(CUDA_ENABLED)
-  install(
-    TARGETS test_${PROJECT_NAME}_trt
-    DESTINATION bin
-  )
-endif()
+
 install(
   DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/resources
   DESTINATION share/${PROJECT_NAME}
