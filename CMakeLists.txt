@@ -2,8 +2,12 @@ cmake_minimum_required(VERSION 3.5)
 
 project(yolo_onnx_ros)
 
-add_compile_options(-Wall -Werror=all)
-add_compile_options(-Wextra -Werror=extra)
+add_compile_options(
+  $<$<COMPILE_LANGUAGE:CXX>:-Wall>
+  $<$<COMPILE_LANGUAGE:CXX>:-Werror=all>
+  $<$<COMPILE_LANGUAGE:CXX>:-Wextra>
+  $<$<COMPILE_LANGUAGE:CXX>:-Werror=extra>
+)
 
 # -------------- Support C++17 for using filesystem  ------------------#
 set(CMAKE_CXX_STANDARD 17)
@@ -12,6 +16,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(catkin REQUIRED
   COMPONENTS
   onnxruntime_ros
+  tensorrt_ros
 )
 
 find_package(console_bridge REQUIRED)
@@ -19,6 +24,7 @@ find_package(OpenCV REQUIRED)
 
 set(${PROJECT_NAME}_CUDA_ENABLED ${onnxruntime_ros_CUDA_ENABLED})
 if(${PROJECT_NAME}_CUDA_ENABLED)
+  enable_language(CUDA)
   find_package(CUDAToolkit REQUIRED)
   set(${PROJECT_NAME}_CUDA_CATKIN_DEPENDS "CUDAToolkit")
   set(${PROJECT_NAME}_CUDA_INCLUDE_DIRS "${CUDAToolkit_INCLUDE_DIRS}")
@@ -34,7 +40,7 @@ configure_file(include/${PROJECT_NAME}/config.hpp.in ${CATKIN_DEVEL_PREFIX}/${CA
 catkin_package(
   INCLUDE_DIRS include ${CATKIN_DEVEL_PREFIX}/${CATKIN_GLOBAL_INCLUDE_DESTINATION}
   LIBRARIES ${PROJECT_NAME}
-  CATKIN_DEPENDS onnxruntime_ros
+  CATKIN_DEPENDS onnxruntime_ros tensorrt_ros
   DEPENDS ${${PROJECT_NAME}_CUDA_CATKIN_DEPENDS} OpenCV console_bridge
 )
 
@@ -58,11 +64,6 @@ add_library(${PROJECT_NAME}
 )
 target_link_libraries(${PROJECT_NAME} ${${PROJECT_NAME}_CUDA_TARGET_LINK_LIBRARIES} ${console_bridge_LIBRARIES} ${OpenCV_LIBRARIES} ${catkin_LIBRARIES})
 # add_dependencies(${PROJECT_NAME} generate_config_hpp)
-
-add_executable(test_${PROJECT_NAME}
-  src/main.cpp
-)
-target_link_libraries(test_${PROJECT_NAME} ${PROJECT_NAME} ${OpenCV_LIBRARIES} ${catkin_LIBRARIES})
 
 file(
   DOWNLOAD https://github.com/tue-robotics/${PROJECT_NAME}/releases/download/yolo11m/yolo11m.onnx ${CMAKE_CURRENT_BINARY_DIR}/resources/yolo11m/yolo11m.onnx
@@ -95,12 +96,6 @@ install(
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION}
-)
-
-install(
-  TARGETS
-    ${PROJECT_NAME}
-  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
 install(
