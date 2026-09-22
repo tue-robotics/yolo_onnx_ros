@@ -56,7 +56,7 @@ std::vector<DL_RESULT> Detector(YoloWrapper& wrapper, const cv::Mat& img)
 #if defined(YOLO_ONNX_ROS_CUDA_ENABLED) && YOLO_ONNX_ROS_CUDA_ENABLED
     else if (wrapper.backend == YOLO::Backend::kTensorRT)
     {
-        auto detections = wrapper.trtDetector->detect(img);
+        auto detections = wrapper.trtDetector->detect(img, 0.1f, 0.5f);
         res.reserve(detections.size());
         for (const auto& det : detections)
         {
