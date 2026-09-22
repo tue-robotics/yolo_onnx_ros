@@ -72,8 +72,8 @@ std::vector<DL_RESULT> Detector(YoloWrapper& wrapper, const cv::Mat& img)
     {
         throw std::runtime_error(
             "[ERROR] Detector: backend 'tensorRT' was requested but "
-            "'yolo_onnx_ros' was compiled WITHOUT TensorRT support. "
-            "Rebuild with -DCUDA_ENABLED=ON.");
+            "'yolo_onnx_ros' was compiled without TensorRT support. "
+            "Rebuild against a CUDA-enabled onnxruntime_ros package.");
     }
 #endif
 
