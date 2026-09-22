@@ -29,9 +29,6 @@ if(${PROJECT_NAME}_CUDA_ENABLED)
   set(${PROJECT_NAME}_CUDA_CATKIN_DEPENDS "CUDAToolkit")
   set(${PROJECT_NAME}_CUDA_INCLUDE_DIRS "${CUDAToolkit_INCLUDE_DIRS}")
   set(${PROJECT_NAME}_CUDA_TARGET_LINK_LIBRARIES "CUDA::cudart")
-  set(${PROJECT_NAME}_CUDA_SOURCES
-    include/yolos/core/cuda_preprocessing.cu
-  )
 endif()
 
 configure_file(include/${PROJECT_NAME}/config.hpp.in ${CATKIN_DEVEL_PREFIX}/${CATKIN_GLOBAL_INCLUDE_DESTINATION}/${PROJECT_NAME}/config.hpp)
@@ -64,7 +61,6 @@ include_directories(
 add_library(${PROJECT_NAME}
   src/detection.cpp
   src/yolo_inference.cpp
-  ${${PROJECT_NAME}_CUDA_SOURCES}
 )
 target_link_libraries(${PROJECT_NAME} ${${PROJECT_NAME}_CUDA_TARGET_LINK_LIBRARIES} ${console_bridge_LIBRARIES} ${OpenCV_LIBRARIES} ${catkin_LIBRARIES})
 # add_dependencies(${PROJECT_NAME} generate_config_hpp)
