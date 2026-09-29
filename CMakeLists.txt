@@ -189,6 +189,7 @@ if (CATKIN_ENABLE_TESTING)
       yolo_test
       ${PROJECT_NAME}
       ${catkin_LIBRARIES}
+      ${OpenCV_LIBRARIES}
       )
   endif()
 
