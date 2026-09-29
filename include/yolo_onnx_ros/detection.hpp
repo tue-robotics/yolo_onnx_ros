@@ -1,6 +1,7 @@
 #pragma once
 
 #include "yolo_onnx_ros/yolo_inference.hpp"
+#include "yolo_onnx_ros/config.hpp"
 
 #include <filesystem>
 #include <memory>
@@ -10,8 +11,8 @@
 // Uncomment the following line to enable additional logging output for debugging purposes.
 // #define LOGGING
 
-#if defined(YOLO_ONNX_ROS_CUDA_ENABLED) && YOLO_ONNX_ROS_CUDA_ENABLED
-#include "yolos/tasks/detection.hpp"
+#if defined(YOLO_ONNX_ROS_TENSORRT_ENABLED) && YOLO_ONNX_ROS_TENSORRT_ENABLED
+#include <yolos/tasks/detection.hpp>
 #endif
 
 namespace YOLO
@@ -32,7 +33,7 @@ public:
 
     std::unique_ptr<YOLO_V8> onnxDetector;  ///< Active when backend == kOnnx
 
-#if defined(YOLO_ONNX_ROS_CUDA_ENABLED) && YOLO_ONNX_ROS_CUDA_ENABLED
+#if defined(YOLO_ONNX_ROS_TENSORRT_ENABLED) && YOLO_ONNX_ROS_TENSORRT_ENABLED
     std::unique_ptr<yolos::det::YOLODetector> trtDetector;  ///< Active when backend == kTensorRT
 #endif
 
