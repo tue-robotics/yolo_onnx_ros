@@ -53,7 +53,7 @@ std::vector<DL_RESULT> Detector(YoloWrapper& wrapper, const cv::Mat& img)
         }
 #endif
     }
-#if defined(YOLO_ONNX_ROS_CUDA_ENABLED) && YOLO_ONNX_ROS_CUDA_ENABLED
+#if defined(YOLO_ONNX_ROS_TENSORRT_ENABLED) && YOLO_ONNX_ROS_TENSORRT_ENABLED
     else if (wrapper.backend == YOLO::Backend::kTensorRT)
     {
         auto detections = wrapper.trtDetector->detect(img);
@@ -72,8 +72,8 @@ std::vector<DL_RESULT> Detector(YoloWrapper& wrapper, const cv::Mat& img)
     {
         throw std::runtime_error(
             "[ERROR] Detector: backend 'tensorRT' was requested but "
-            "'yolo_onnx_ros' was compiled WITHOUT TensorRT support. "
-            "Rebuild with -DCUDA_ENABLED=ON.");
+            "'yolo_onnx_ros' was compiled WITHOUT TensorRT support."
+        );
     }
 #endif
 
@@ -207,7 +207,7 @@ int ReadYaml(const std::filesystem::path& filename, std::unique_ptr<YOLO_V8>& p)
 }
 
 std::tuple<YoloWrapper, DL_INIT_PARAM> Initialize(const std::filesystem::path& model_filename,
-                                                   YOLO::Backend backend)
+                                                  YOLO::Backend backend)
 {
     YoloWrapper wrapper;
     wrapper.backend = backend;
@@ -226,19 +226,26 @@ std::tuple<YoloWrapper, DL_INIT_PARAM> Initialize(const std::filesystem::path& m
         params.iouThreshold = 0.5;
         params.modelPath = model_filename;
         params.imgSize = { 640, 640 };
+        params.modelType = YOLO_DETECT_V8;
+
 #if defined(YOLO_ONNX_ROS_CUDA_ENABLED) && YOLO_ONNX_ROS_CUDA_ENABLED
         params.cudaEnable = true;
-        params.modelType  = YOLO_DETECT_V8;
 #else
         params.cudaEnable = false;
-        params.modelType  = YOLO_DETECT_V8;
 #endif
+
         wrapper.onnxDetector->CreateSession(params);
         wrapper.classes = wrapper.onnxDetector->classes;
     }
-#if defined(YOLO_ONNX_ROS_CUDA_ENABLED) && YOLO_ONNX_ROS_CUDA_ENABLED
+#if defined(YOLO_ONNX_ROS_TENSORRT_ENABLED) && YOLO_ONNX_ROS_TENSORRT_ENABLED
     else if (backend == YOLO::Backend::kTensorRT)
     {
+        if (model_filename.extension() == ".onnx")
+        {
+            throw std::invalid_argument(
+                "TensorRT backend requires a serialized TensorRT engine (.engine or .trt), not an ONNX model.");
+        }
+
         // Class names are optional — pass empty string when absent (e.g. YOLO26)
         const auto names_path = model_filename.parent_path() / "coco.names";
         const std::string labels = std::filesystem::exists(names_path) ? names_path.string() : "";
@@ -250,8 +257,8 @@ std::tuple<YoloWrapper, DL_INIT_PARAM> Initialize(const std::filesystem::path& m
     {
         throw std::runtime_error(
             "[ERROR] Initialize: backend 'tensorRT' was requested but "
-            "'yolo_onnx_ros' was compiled WITHOUT TensorRT support. "
-            "Rebuild with -DCUDA_ENABLED=ON.");
+            "'yolo_onnx_ros' was compiled WITHOUT TensorRT support."
+        );
     }
 #endif
 

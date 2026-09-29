@@ -61,10 +61,33 @@ In order to run example, you also need to download coco.yaml. You can download t
 | Cmake                            | >=3.5         |
 | Cuda (Optional)                  |  =12.8        |
 | cuDNN (Cuda required)            | =9            |
+| TensorRT (Optional backend)      | 10.x          |
 
 Note: The dependency on C++17 is due to the usage of the C++17 filesystem feature.
 
 Note (2): Due to ONNX Runtime, we need to use CUDA 12.8 and cuDNN 9. Keep in mind that this requirement might change in the future.
+
+## TensorRT Backend (Optional) ⚡
+
+The TensorRT backend is disabled by default and requires the `YOLOs-CPP-TensorRT` submodule.
+
+1. Initialize the submodule (only needed once per clone):
+
+   ```bash
+   git submodule update --init --recursive
+   ```
+
+2. Enable TensorRT at configure time. Both the CMake option and the matching environment variable must be set, since `package.xml` only declares `tensorrt_ros` as a dependency when the environment variable is present:
+
+   ```bash
+   export YOLO_ONNX_ROS_ENABLE_TENSORRT=true
+   catkin config --cmake-args -DYOLO_ONNX_ROS_ENABLE_TENSORRT=ON -DCMAKE_CUDA_ARCHITECTURES=<your-gpu-architecture>
+   catkin build yolo_onnx_ros
+   ```
+
+3. TensorRT inference requires a serialized `.trt`/`.engine` file (not the `.onnx` file) and a `coco.names` labels file placed next to it, mirroring the `coco.yaml` used for the ONNX backend. Without a labels file, class names stay empty even though detections still work.
+
+Leaving `YOLO_ONNX_ROS_ENABLE_TENSORRT` unset (or `OFF`) builds an ONNX-only package with no TensorRT dependency.
 
 ## Build 🛠️
 
@@ -102,23 +125,25 @@ Note (2): Due to ONNX Runtime, we need to use CUDA 12.8 and cuDNN 9. Keep in min
 6. The built executable should now be located in the `build` directory.
 
 ## Usage 🚀
-To run from main just run the executable.
-To run the detector on you C++ application:
-```c++
-//To run the detector add on you C++ application:
-std::vector<DL_RESULT> results;
-std::unique_ptr<YOLO_V8> yoloDetector = Initialize();
-results = DetectObjects(yoloDetector, img);
 
-//You can change your param as you like (inside the Initialize() function)
-//Pay attention to your device and the onnx model type(fp32 or fp16)
-DL_INIT_PARAM params;
-params.rectConfidenceThreshold = 0.1;
-params.iouThreshold = 0.5;
-params.modelPath = "yolov8n.onnx";
-params.imgSize = { 640, 640 };
-params.cudaEnable = true;
-params.modelType = YOLO_DETECT_V8;
-yoloDetector->CreateSession(params);
-Detector(yoloDetector);
+The package builds a standalone `yolo_onnx_ros_node` executable for testing outside of ROS:
+
+```bash
+./yolo_onnx_ros_node <model_path> <images_dir> [onnx|tensorrt]
 ```
+
+The backend argument is optional and defaults to `onnx`. Use `tensorrt` only if the package was built with `YOLO_ONNX_ROS_ENABLE_TENSORRT=ON`.
+
+To run the detector from your own C++ application:
+```c++
+#include "yolo_onnx_ros/detection.hpp"
+
+YoloWrapper wrapper;
+DL_INIT_PARAM params;
+std::tie(wrapper, params) = Initialize("yolov8n.onnx", YOLO::Backend::kOnnx);
+
+cv::Mat img = cv::imread("image.jpg");
+std::vector<DL_RESULT> results = Detector(wrapper, img);
+```
+
+Pass `YOLO::Backend::kTensorRT` instead to use the TensorRT backend (see [TensorRT Backend (Optional)](#tensorrt-backend-optional-)) with a `.trt`/`.engine` model path.
