@@ -2,12 +2,8 @@ cmake_minimum_required(VERSION 3.5)
 
 project(yolo_onnx_ros)
 
-add_compile_options(
-  $<$<COMPILE_LANGUAGE:CXX>:-Wall>
-  $<$<COMPILE_LANGUAGE:CXX>:-Werror=all>
-  $<$<COMPILE_LANGUAGE:CXX>:-Wextra>
-  $<$<COMPILE_LANGUAGE:CXX>:-Werror=extra>
-)
+add_compile_options(-Wall -Werror=all)
+add_compile_options(-Wextra -Werror=extra)
 
 # -------------- Support C++17 for using filesystem  ------------------#
 set(CMAKE_CXX_STANDARD 17)
@@ -106,14 +102,24 @@ add_library(${PROJECT_NAME}
 target_link_libraries(${PROJECT_NAME} PRIVATE ${${PROJECT_NAME}_CUDA_TARGET_LINK_LIBRARIES} ${console_bridge_LIBRARIES} ${OpenCV_LIBRARIES} ${catkin_LIBRARIES})
 if(YOLO_ONNX_ROS_ENABLE_TENSORRT)
   find_package(Threads REQUIRED)
-  target_sources(${PROJECT_NAME} PRIVATE ${${PROJECT_NAME}_YOLOS_TRT_CUDA_SOURCE})
+  add_library(${PROJECT_NAME}_cuda_preprocessing STATIC ${${PROJECT_NAME}_YOLOS_TRT_CUDA_SOURCE})
+  # nvcc rejects the host-compiler warning flags set globally above.
+  set_target_properties(${PROJECT_NAME}_cuda_preprocessing PROPERTIES
+    COMPILE_OPTIONS ""
+    POSITION_INDEPENDENT_CODE ON
+  )
+  target_include_directories(${PROJECT_NAME}_cuda_preprocessing SYSTEM PRIVATE
+    ${${PROJECT_NAME}_YOLOS_TRT_INCLUDE_DIR}
+    ${tensorrt_ros_INCLUDE_DIRS}
+  )
+  target_link_libraries(${PROJECT_NAME}_cuda_preprocessing PRIVATE CUDA::cudart)
+
   target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC
     ${${PROJECT_NAME}_YOLOS_TRT_INCLUDE_DIR}
     ${tensorrt_ros_INCLUDE_DIRS}
   )
-  target_link_libraries(${PROJECT_NAME} PRIVATE ${tensorrt_ros_LIBRARIES} Threads::Threads)
+  target_link_libraries(${PROJECT_NAME} PRIVATE ${PROJECT_NAME}_cuda_preprocessing ${tensorrt_ros_LIBRARIES} Threads::Threads)
   set_target_properties(${PROJECT_NAME} PROPERTIES
-    CUDA_SEPARABLE_COMPILATION ON
     POSITION_INDEPENDENT_CODE ON
   )
 endif()
