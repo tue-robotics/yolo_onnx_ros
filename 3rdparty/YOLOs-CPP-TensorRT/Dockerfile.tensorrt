@@ -1,0 +1,79 @@
+# ============================================================================
+# YOLOs-TRT Production Dockerfile — Data-Center GPU
+# ============================================================================
+# Multi-stage build using the official NVIDIA TensorRT container.
+#
+# Build:
+#   docker build -f Dockerfile.tensorrt -t yolos-trt .
+#
+# Run:
+#   docker run --gpus all -v /path/to/models:/app/models \
+#              -v /path/to/data:/app/data yolos-trt \
+#              ./image_inference ./models/yolo11n.trt ./data/dog.jpg
+#
+# For Jetson, use the companion Dockerfile.tensorrt.jetson or adapt
+# the base image to nvcr.io/nvidia/l4t-tensorrt:<version>.
+# ============================================================================
+
+# ----- Stage 1: Builder -----
+FROM nvcr.io/nvidia/tensorrt:24.08-py3 AS builder
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install OpenCV build dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential cmake git pkg-config \
+    libopencv-dev libopencv-contrib-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /build
+
+# Copy source
+COPY CMakeLists.txt ./
+COPY include/ include/
+COPY src/ src/
+COPY tools/ tools/
+
+# Build (Release, all executables)
+RUN mkdir -p build && cd build && \
+    cmake .. \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_CUDA_ARCHITECTURES="75;80;86;89;90" \
+    && make -j"$(nproc)"
+
+# ----- Stage 2: Runtime -----
+FROM nvcr.io/nvidia/tensorrt:24.08-py3 AS runtime
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install only runtime OpenCV libraries
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libopencv-core4.5d libopencv-imgproc4.5d \
+    libopencv-highgui4.5d libopencv-imgcodecs4.5d \
+    libopencv-videoio4.5d \
+    libgtk-3-0 \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copy built binaries
+COPY --from=builder /build/build/image_inference .
+COPY --from=builder /build/build/video_inference .
+COPY --from=builder /build/build/camera_inference .
+COPY --from=builder /build/build/class_image_inference .
+COPY --from=builder /build/build/batch_image_inference .
+COPY --from=builder /build/build/depth_image_inference .
+COPY --from=builder /build/build/onnx2trt .
+
+# Copy labels
+COPY models/*.names models/
+
+# Default data directory
+RUN mkdir -p data
+
+# Healthcheck: verify CUDA is available
+HEALTHCHECK --interval=30s --timeout=5s \
+    CMD nvidia-smi > /dev/null 2>&1 || exit 1
+
+ENTRYPOINT ["/bin/bash", "-c"]
+CMD ["echo 'YOLOs-TRT ready. Run: ./image_inference <engine> <image> [labels]'"]

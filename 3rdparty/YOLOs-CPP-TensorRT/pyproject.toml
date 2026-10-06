@@ -1,0 +1,28 @@
+[project]
+name = "yolos-trt-tools"
+version = "3.1.0"
+description = "Python tools for YOLOs-TRT model export and TensorRT conversion"
+requires-python = ">=3.8"
+
+dependencies = [
+    "ultralytics>=8.3.0",
+    "onnx>=1.14.0",
+    "onnxsim>=0.4.33",
+    "numpy>=1.24.0",
+    "opencv-python>=4.8.0",
+    "tqdm>=4.65.0",
+]
+
+[project.optional-dependencies]
+calibration = [
+    "pillow>=9.0.0",
+]
+validation = [
+    "torch>=2.0.0",
+    "torchvision>=0.15.0",
+]
+
+[tool.uv]
+# uv will use this file automatically:
+#   uv sync
+#   uv run python trt-files/scripts/convert_to_tensorrt.py --help

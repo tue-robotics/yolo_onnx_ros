@@ -7,48 +7,111 @@
 #include <iomanip>
 #include <iostream>
 
-std::vector<DL_RESULT> Detector(std::unique_ptr<YOLO_V8>& p, const cv::Mat& img) {
+namespace
+{
+#if defined(YOLO_ONNX_ROS_TENSORRT_ENABLED) && YOLO_ONNX_ROS_TENSORRT_ENABLED
+std::vector<DL_RESULT> DetectTensorRT(YoloWrapper& wrapper, const cv::Mat& img)
+{
+    auto detections = wrapper.trtDetector->detect(img);
+    std::vector<DL_RESULT> res;
+    res.reserve(detections.size());
+    for (const auto& det : detections)
+    {
+        DL_RESULT r;
+        r.classId    = det.classId;
+        r.confidence = det.conf;
+        r.box        = cv::Rect(det.box.x, det.box.y, det.box.width, det.box.height);
+        res.push_back(r);
+    }
+    return res;
+}
 
-            std::vector<DL_RESULT> res;
-            p->RunSession(img, res);
-        #ifdef LOGGING
-            for (auto& re : res)
-            {
-                cv::RNG rng(cv::getTickCount());
-                cv::Scalar color(rng.uniform(0, 256), rng.uniform(0, 256), rng.uniform(0, 256));
+void InitializeTensorRT(YoloWrapper& wrapper, const std::filesystem::path& model_filename)
+{
+    if (model_filename.extension() == ".onnx")
+    {
+        throw std::invalid_argument(
+            "TensorRT backend requires a serialized TensorRT engine (.engine or .trt), not an ONNX model.");
+    }
 
-                cv::rectangle(img, re.box, color, 3);
+    // Class names are optional — pass empty string when absent (e.g. YOLO26)
+    const auto names_path = model_filename.parent_path() / "coco.names";
+    const std::string labels = std::filesystem::exists(names_path) ? names_path.string() : "";
+    wrapper.trtDetector = std::make_unique<yolos::det::YOLODetector>(model_filename.string(), labels);
+    wrapper.classes = wrapper.trtDetector->getClassNames();
+}
+#else
+std::vector<DL_RESULT> DetectTensorRT(YoloWrapper&, const cv::Mat&)
+{
+    throw std::runtime_error(
+        "[ERROR] Detector: backend 'tensorRT' was requested but "
+        "'yolo_onnx_ros' was compiled WITHOUT TensorRT support."
+    );
+}
 
-                float confidence = floor(100 * re.confidence) / 100;
-                std::cout << std::fixed << std::setprecision(2);
-                std::string label = p->classes[re.classId] + " " +
-                    std::to_string(confidence).substr(0, std::to_string(confidence).size() - 4);
+void InitializeTensorRT(YoloWrapper&, const std::filesystem::path&)
+{
+    throw std::runtime_error(
+        "[ERROR] Initialize: backend 'tensorRT' was requested but "
+        "'yolo_onnx_ros' was compiled WITHOUT TensorRT support."
+    );
+}
+#endif
+}  // namespace
 
-                cv::rectangle(
-                    img,
-                    cv::Point(re.box.x, re.box.y - 25),
-                    cv::Point(re.box.x + label.length() * 15, re.box.y),
-                    color,
-                    cv::FILLED
-                );
+std::vector<DL_RESULT> Detector(YoloWrapper& wrapper, const cv::Mat& img)
+{
+    std::vector<DL_RESULT> res;
 
-                cv::putText(
-                    img,
-                    label,
-                    cv::Point(re.box.x, re.box.y - 5),
-                    cv::FONT_HERSHEY_SIMPLEX,
-                    0.75,
-                    cv::Scalar(0, 0, 0),
-                    2
-                );
-                }
-            std::cout << "Press any key to exit" << std::endl;
-            cv::imshow("Result of Detection", img);
-            cv::waitKey(0);
-            cv::destroyAllWindows();
-        #endif
-            return res;
+    if (wrapper.backend == YOLO::Backend::kOnnx)
+    {
+        wrapper.onnxDetector->RunSession(img, res);
+    }
+    else if (wrapper.backend == YOLO::Backend::kTensorRT)
+    {
+        res = DetectTensorRT(wrapper, img);
+    }
 
+#ifdef LOGGING
+    for (auto& re : res)
+    {
+        cv::RNG rng(cv::getTickCount());
+        cv::Scalar color(rng.uniform(0, 256), rng.uniform(0, 256), rng.uniform(0, 256));
+
+        cv::rectangle(img, re.box, color, 3);
+
+        float confidence = floor(100 * re.confidence) / 100;
+        std::cout << std::fixed << std::setprecision(2);
+
+        std::string label;
+        if (!wrapper.classes.empty() && re.classId >= 0 &&
+            static_cast<size_t>(re.classId) < wrapper.classes.size())
+        {
+            label = wrapper.classes[re.classId] + " " +
+                std::to_string(confidence).substr(0, std::to_string(confidence).size() - 4);
+        }
+
+        cv::rectangle(
+            img,
+            cv::Point(re.box.x, re.box.y - 25),
+            cv::Point(re.box.x + static_cast<int>(label.length()) * 15, re.box.y),
+            color,
+            cv::FILLED
+        );
+
+        cv::putText(
+            img,
+            label,
+            cv::Point(re.box.x, re.box.y - 5),
+            cv::FONT_HERSHEY_SIMPLEX,
+            0.75,
+            cv::Scalar(0, 0, 0),
+            2
+        );
+    }
+#endif
+
+    return res;
 }
 
 
@@ -177,33 +240,38 @@ int ReadYaml(const std::filesystem::path& filename, std::unique_ptr<YOLO_V8>& p)
     return 0;
 }
 
-std::tuple<std::unique_ptr<YOLO_V8>, DL_INIT_PARAM> Initialize(const std::filesystem::path& model_filename)
+std::tuple<YoloWrapper, DL_INIT_PARAM> Initialize(const std::filesystem::path& model_filename,
+                                                  YOLO::Backend backend)
 {
-    std::unique_ptr<YOLO_V8> yoloDetector = std::make_unique<YOLO_V8>();
-        ReadYaml(model_filename.parent_path() / "coco.yaml", yoloDetector);
+    YoloWrapper wrapper;
+    wrapper.backend = backend;
+    DL_INIT_PARAM params;
 
-        DL_INIT_PARAM params;
+    if (backend == YOLO::Backend::kOnnx)
+    {
+        wrapper.onnxDetector = std::make_unique<YOLO_V8>();
+
+        // Class names are optional — skip silently if absent (e.g. YOLO26)
+        const auto yaml_path = model_filename.parent_path() / "coco.yaml";
+        if (std::filesystem::exists(yaml_path))
+            ReadYaml(yaml_path, wrapper.onnxDetector);
+
         params.rectConfidenceThreshold = 0.1;
         params.iouThreshold = 0.5;
         params.modelPath = model_filename;
         params.imgSize = { 640, 640 };
-    #if defined(YOLO_ONNX_ROS_CUDA_ENABLED) && YOLO_ONNX_ROS_CUDA_ENABLED
-        params.cudaEnable = true;
-
-        // GPU FP32 inference
         params.modelType = YOLO_DETECT_V8;
-        // GPU FP16 inference
-        //Note: change fp16 onnx model
-        //params.modelType = YOLO_DETECT_V8_HALF;
+        params.cudaEnable = YOLO_ONNX_ROS_CUDA_ENABLED;
 
-    #else
-        // CPU inference
-        params.modelType = YOLO_DETECT_V8;
-        params.cudaEnable = false;
+        wrapper.onnxDetector->CreateSession(params);
+        wrapper.classes = wrapper.onnxDetector->classes;
+    }
+    else if (backend == YOLO::Backend::kTensorRT)
+    {
+        InitializeTensorRT(wrapper, model_filename);
+    }
 
-    #endif
-        yoloDetector->CreateSession(params);
-    return std::make_tuple(std::move(yoloDetector), std::move(params));
+    return {std::move(wrapper), std::move(params)};
 }
 
 

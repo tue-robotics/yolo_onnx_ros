@@ -20,7 +20,9 @@ protected:
         cv::randu(testImage_realistic, cv::Scalar(0, 0, 0), cv::Scalar(255, 255, 255));
 
         // Setup common parameters
-        std::tie(yolo, params) = Initialize("./yolo11m.onnx");
+        YoloWrapper wrapper;
+        std::tie(wrapper, params) = Initialize("./yolo11m.onnx", YOLO::Backend::kOnnx);
+        yolo = std::move(wrapper.onnxDetector);
 
         NonSquareImgSize = { testImage_800x600.cols, testImage_800x600.rows };
     }
