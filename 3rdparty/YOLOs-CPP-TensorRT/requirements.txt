@@ -1,0 +1,31 @@
+# ============================================================================
+# YOLOs-TRT Python Dependencies
+# ============================================================================
+# Required for model export (ONNX) and TensorRT engine conversion.
+# C++ inference does NOT require Python at runtime.
+#
+# Install:
+#   pip install -r requirements.txt
+#   # or with uv (recommended, much faster):
+#   uv pip install -r requirements.txt
+# ============================================================================
+
+# --- Model Export ---
+ultralytics>=8.3.0          # YOLO model export to ONNX
+onnx>=1.14.0                # ONNX model format
+onnxsim>=0.4.33             # ONNX model simplification
+
+# --- TensorRT Conversion (Python path) ---
+# tensorrt is typically installed via apt (tensorrt package) or pip:
+#   pip install tensorrt
+# The convert_to_tensorrt.py script uses the TensorRT Python API.
+# If using trtexec (CLI) instead, tensorrt Python package is optional.
+
+# --- INT8 Calibration ---
+numpy>=1.24.0               # Numerical operations
+opencv-python>=4.8.0        # Image loading for calibration
+tqdm>=4.65.0                # Progress bars
+
+# --- Optional: Validation ---
+# torch>=2.0.0              # Only needed if comparing PyTorch vs TRT outputs
+# torchvision>=0.15.0       # Only needed for torchvision transforms comparison

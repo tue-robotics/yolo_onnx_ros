@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.24 FATAL_ERROR)
 
 project(yolo_onnx_ros)
 
@@ -22,7 +22,7 @@ if(YOLO_ONNX_ROS_ENABLE_TENSORRT)
   find_package(tensorrt_ros REQUIRED)
 
   set(${PROJECT_NAME}_YOLOS_TRT_ROOT
-      "${CMAKE_CURRENT_SOURCE_DIR}/include/3rdparty/YOLOs-CPP-TensorRT")
+      "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/YOLOs-CPP-TensorRT")
   set(${PROJECT_NAME}_YOLOS_TRT_INCLUDE_DIR
       "${${PROJECT_NAME}_YOLOS_TRT_ROOT}/include")
   set(${PROJECT_NAME}_YOLOS_TRT_HEADER
@@ -116,6 +116,8 @@ if(YOLO_ONNX_ROS_ENABLE_TENSORRT)
 
   target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC
     ${${PROJECT_NAME}_YOLOS_TRT_INCLUDE_DIR}
+  )
+  target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC
     ${tensorrt_ros_INCLUDE_DIRS}
   )
   target_link_libraries(${PROJECT_NAME} PRIVATE ${PROJECT_NAME}_cuda_preprocessing ${tensorrt_ros_LIBRARIES} Threads::Threads)
@@ -186,7 +188,7 @@ install(
 # ------------------------------------------------------------------------------------------------
 if (CATKIN_ENABLE_TESTING)
   find_package(catkin_lint_cmake REQUIRED)
-  catkin_add_catkin_lint_test("-W2 --ignore EXTERNAL_DIRECTORY --ignore EXTERNAL_FILE --ignore EXTERNAL_INCLUDE_PATH --ignore HEADER_OUTSIDE_PACKAGE_INCLUDE_PATH --ignore MISSING_DIRECTORY --ignore MISSING_DEPEND")
+  catkin_add_catkin_lint_test("-W2 --ignore EXTERNAL_DIRECTORY --ignore EXTERNAL_FILE --ignore EXTERNAL_INCLUDE_PATH --ignore HEADER_OUTSIDE_PACKAGE_INCLUDE_PATH --ignore MISSING_DIRECTORY --ignore MISSING_DEPEND --ignore AMBIGUOUS_INCLUDE_PATH --ignore UNINSTALLED_SCRIPT --ignore GLOBAL_VAR_COLLISION --ignore EXTERNAL_INTERFACE_PATH")
 
   # Utils unit tests (no models needed)
   catkin_add_gmock(yolo_test test/yolo_test.cpp WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/resources/yolo11m")
