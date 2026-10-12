@@ -5,13 +5,13 @@
             "name": "Debug Yolo Model",
             "type": "cppdbg",
             "request": "launch",
-            "program": "/home/amigo/ros/noetic/system/devel/lib/yolo_onnx_ros/test_yolo_onnx_ros", // Path to the executable
+            "program": "/home/anarobotics/ros/noetic/system/devel/lib/yolo_onnx_ros/yolo_onnx_ros_node", // Path to the executable
             "args": [
-                "/home/amigo/ros/noetic/repos/github.com/tue-robotics/yolo_onnx_ros/data/yolo11m.onnx",
-                "/home/amigo/Documents/repos/hero_sam.bak/pipeline/build/images"
+                "${workspaceFolder}/models/yolo26m.trt",
+                "/home/anarobotics/Desktop/"
                 ], // Add any command-line arguments for your program here
             "stopAtEntry": false,
-            "cwd": "${workspaceFolder}/build", // Set the working directory
+            "cwd": "${workspaceFolder}/", // Set the working directory
             "environment": [],
             "externalConsole": false,
             "MIMode": "gdb",
@@ -28,7 +28,7 @@
             "name": "Debug Yolo Test",
             "type": "cppdbg",
             "request": "launch",
-            "program": "/home/amigo/ros/noetic/system/devel/lib/yolo_onnx_ros/yolo_test", // Path to the executable
+            "program": "/home/anarobotics/ros/noetic/system/devel/lib/yolo_onnx_ros/yolo_test", // Path to the executable
             "args": [], // Add any command-line arguments for your program here
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/build", // Set the working directory

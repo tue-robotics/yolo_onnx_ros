@@ -2,6 +2,7 @@
 
 #include <filesystem>
 #include <iostream>
+#include <opencv2/highgui.hpp>
 #include <string>
 
 static YOLO::Backend ParseBackend(const std::string& value)
@@ -52,6 +53,8 @@ int main(int argc, char* argv[])
                           << "class id:   " << result.classId << "\n"
                           << "confidence: " << result.confidence << "\n";
             }
+            cv::imshow("detections", img);
+            cv::waitKey(0);
 #endif // LOGGING
         }
     }
