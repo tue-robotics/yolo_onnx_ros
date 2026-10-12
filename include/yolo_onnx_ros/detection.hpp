@@ -9,7 +9,7 @@
 #include <vector>
 
 // Uncomment the following line to enable additional logging output for debugging purposes.
-// #define LOGGING
+#define LOGGING
 
 #if defined(YOLO_ONNX_ROS_TENSORRT_ENABLED) && YOLO_ONNX_ROS_TENSORRT_ENABLED
 #include <yolos/tasks/detection.hpp>
