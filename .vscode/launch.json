@@ -8,7 +8,8 @@
             "program": "${userHome}/ros/noetic/system/devel/lib/yolo_onnx_ros/yolo_onnx_ros_node", // Path to the executable
             "args": [
                 //"${workspaceFolder}/models/yolo26m.trt",
-                "${userHome}/ros/noetic/system/build/yolo_onnx_ros/resourses/yolo26m/yolo26m.trt",
+                "${userHome}/ros/noetic/repos/github.com/tue-robotics/yolo_onnx_ros/models/yolo26m.trt",
+                //"${userHome}/ros/noetic/system/build/yolo_onnx_ros/resources/yolo11m/yolo26m.trt",
                 "${userHome}/Desktop/", // Path to the the immage directory
                 "tensorrt"
                 ], // Add any command-line arguments for your program here

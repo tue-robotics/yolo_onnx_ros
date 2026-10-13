@@ -133,6 +133,11 @@ target_link_libraries(${PROJECT_NAME}_node
   ${OpenCV_LIBRARIES}
 )
 
+# file(
+#   DOWNLOAD https://github.com/tue-robotics/${PROJECT_NAME}/releases/download/yolo26m/yolo26m.onnx ${CMAKE_CURRENT_BINARY_DIR}/resources/yolo26m/yolo26m.onnx
+#   EXPECTED_HASH "SHA256=0eb68248f3868dfd8341e2e7d90e1e9d9594325e984574c11b0404f27673a419"
+#   SHOW_PROGRESS
+# )
 file(
   DOWNLOAD https://github.com/tue-robotics/${PROJECT_NAME}/releases/download/yolo11m/yolo11m.onnx ${CMAKE_CURRENT_BINARY_DIR}/resources/yolo11m/yolo11m.onnx
   EXPECTED_HASH "SHA256=0eb68248f3868dfd8341e2e7d90e1e9d9594325e984574c11b0404f27673a419"
