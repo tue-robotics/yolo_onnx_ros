@@ -231,7 +231,7 @@ char* YOLO_V8::TensorProcess(clock_t& starttime_1, N& blob, std::vector<int64_t>
     case YOLO_DETECT_V8:
     case YOLO_DETECT_V8_HALF:
     {
-        // YOLO26 end-to-end (NMS-free) output: [1, N, 6] = x1, y1, x2, y2, conf, class
+        // If the model is not trained with NMS (like YOLO26), the output shape will be [1, N, 6] = x1, y1, x2, y2, conf, class where N is the number of detections.
         if (outputNodeDims.size() == 3 && outputNodeDims[2] == 6 && outputNodeDims[1] > 6)
         {
             cv::Mat raw(static_cast<int>(outputNodeDims[1]), 6, CV_32F);
@@ -256,6 +256,7 @@ char* YOLO_V8::TensorProcess(clock_t& starttime_1, N& blob, std::vector<int64_t>
             }
             break;
         }
+        // If the model is trained with NMS, the output shape will be [1, M, 6] where M is the number of detections after NMS.
         int signalResultNum = outputNodeDims[1]; // Dataset-specific: e.g., 605 for OIV7 (4 bbox + 601 classes), 84 for COCO (4 bbox + 80 classes)
         int strideNum = outputNodeDims[2];        // 8400
         int numClasses = signalResultNum - 4;     // 601 for OIV7, 80 for COCO (4 rows are bbox)
