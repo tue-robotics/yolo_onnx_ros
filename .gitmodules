@@ -1,0 +1,3 @@
+[submodule "include/3rdparty/YOLOs-CPP-TensorRT"]
+	path = include/3rdparty/YOLOs-CPP-TensorRT
+	url = https://github.com/Annes2/YOLOs-CPP-TensorRT.git
