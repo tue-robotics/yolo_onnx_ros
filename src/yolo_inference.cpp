@@ -231,6 +231,32 @@ char* YOLO_V8::TensorProcess(clock_t& starttime_1, N& blob, std::vector<int64_t>
     case YOLO_DETECT_V8:
     case YOLO_DETECT_V8_HALF:
     {
+        // If the model is not trained with NMS (like YOLO26), the output shape will be [1, N, 6] = x1, y1, x2, y2, conf, class where N is the number of detections.
+        if (outputNodeDims.size() == 3 && outputNodeDims[2] == 6 && outputNodeDims[1] > 6)
+        {
+            cv::Mat raw(static_cast<int>(outputNodeDims[1]), 6, CV_32F);
+            if (modelType_ == YOLO_DETECT_V8)
+                raw = cv::Mat(static_cast<int>(outputNodeDims[1]), 6, CV_32F, output).clone();
+            else
+            {
+                cv::Mat half(static_cast<int>(outputNodeDims[1]), 6, CV_16F, output);
+                half.convertTo(raw, CV_32F);
+            }
+            for (int i = 0; i < raw.rows; ++i)
+            {
+                const float* d = raw.ptr<float>(i);
+                if (d[4] <= rectConfidenceThreshold_)
+                    continue;
+                DL_RESULT result;
+                result.classId = static_cast<int>(d[5]);
+                result.confidence = d[4];
+                result.box = cv::Rect(int(d[0] * resizeScales_), int(d[1] * resizeScales_),
+                                      int((d[2] - d[0]) * resizeScales_), int((d[3] - d[1]) * resizeScales_));
+                oResult.push_back(result);
+            }
+            break;
+        }
+        // If the model is trained with NMS, the output shape will be [1, M, 6] where M is the number of detections after NMS.
         int signalResultNum = outputNodeDims[1]; // Dataset-specific: e.g., 605 for OIV7 (4 bbox + 601 classes), 84 for COCO (4 bbox + 80 classes)
         int strideNum = outputNodeDims[2];        // 8400
         int numClasses = signalResultNum - 4;     // 601 for OIV7, 80 for COCO (4 rows are bbox)
