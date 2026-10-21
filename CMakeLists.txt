@@ -134,6 +134,8 @@ target_link_libraries(${PROJECT_NAME}_node
 )
 
 # Authenticate the downloads when a GITHUB_TOKEN is available, to avoid rate limiting
+# The token only authenticates the downloads and doesn't affect the build result, so silence catkin_lint's ENV_VAR warning
+#catkin_lint: ignore env_var
 set(${PROJECT_NAME}_DOWNLOAD_ARGS SHOW_PROGRESS)
 if(NOT "$ENV{GITHUB_TOKEN}" STREQUAL "")
   list(APPEND ${PROJECT_NAME}_DOWNLOAD_ARGS HTTPHEADER "Authorization: Bearer $ENV{GITHUB_TOKEN}")
@@ -165,6 +167,7 @@ if(NOT YOLO_ONNX_ROS_ENABLE_TENSORRT OR CATKIN_ENABLE_TESTING)
     ${${PROJECT_NAME}_DOWNLOAD_ARGS}
   )
 endif()
+#catkin_lint: report env_var
 
 # ------------------------------------------------------------------------------------------------
 #                                               INSTALL
