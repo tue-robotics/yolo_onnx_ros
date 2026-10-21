@@ -9,7 +9,7 @@ add_compile_options(-Wextra -Werror=extra)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-option(YOLO_ONNX_ROS_ENABLE_TENSORRT "Build TensorRT backend support" OFF)
+option(YOLO_ONNX_ROS_ENABLE_TENSORRT "Build TensorRT backend support" ON)
 
 find_package(catkin REQUIRED
   COMPONENTS
