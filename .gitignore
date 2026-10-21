@@ -15,3 +15,5 @@ segmentation_results*
 
 # Models
 *.onnx
+*.trt
+models/
