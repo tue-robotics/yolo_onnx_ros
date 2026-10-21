@@ -133,16 +133,22 @@ target_link_libraries(${PROJECT_NAME}_node
   ${OpenCV_LIBRARIES}
 )
 
+# Authenticate the downloads when a GITHUB_TOKEN is available, to avoid rate limiting
+set(${PROJECT_NAME}_DOWNLOAD_ARGS SHOW_PROGRESS)
+if(NOT "$ENV{GITHUB_TOKEN}" STREQUAL "")
+  list(APPEND ${PROJECT_NAME}_DOWNLOAD_ARGS HTTPHEADER "Authorization: Bearer $ENV{GITHUB_TOKEN}")
+endif()
+
 if(YOLO_ONNX_ROS_ENABLE_TENSORRT)
   file(
     DOWNLOAD https://github.com/tue-robotics/${PROJECT_NAME}/releases/download/yolo26m/yolo26m.trt ${CMAKE_CURRENT_BINARY_DIR}/resources/yolo26m/yolo26m.trt
     EXPECTED_HASH "SHA256=8b605d40955ede9bc49221fe4096a8e64e66dc1503b50322f229ed0e6dee0c43"
-    SHOW_PROGRESS
+    ${${PROJECT_NAME}_DOWNLOAD_ARGS}
   )
   file(
     DOWNLOAD https://github.com/tue-robotics/${PROJECT_NAME}/releases/download/yolo26m/coco.names ${CMAKE_CURRENT_BINARY_DIR}/resources/yolo26m/coco.names
     EXPECTED_HASH "SHA256=bd17f1ee35d5f3c862a4894605855abbb9dda4b0621fdb0ac4c2c8c7bb7e730a"
-    SHOW_PROGRESS
+    ${${PROJECT_NAME}_DOWNLOAD_ARGS}
   )
 endif()
 
@@ -151,12 +157,12 @@ if(NOT YOLO_ONNX_ROS_ENABLE_TENSORRT OR CATKIN_ENABLE_TESTING)
   file(
     DOWNLOAD https://github.com/tue-robotics/${PROJECT_NAME}/releases/download/yolo26m/yolo26m.onnx ${CMAKE_CURRENT_BINARY_DIR}/resources/yolo26m/yolo26m.onnx
     EXPECTED_HASH "SHA256=17d9d4491c8954d69ce95bc8f707d883cae4a1b6508ee9f4dca8e0b38b1addc9"
-    SHOW_PROGRESS
+    ${${PROJECT_NAME}_DOWNLOAD_ARGS}
   )
   file(
     DOWNLOAD https://github.com/tue-robotics/${PROJECT_NAME}/releases/download/yolo26m/coco.yaml ${CMAKE_CURRENT_BINARY_DIR}/resources/yolo26m/coco.yaml
     EXPECTED_HASH "SHA256=721773c881cb7de92339c9e0f86dbf6e90b9ed551c1cf8d5bd6f043497e241aa"
-    SHOW_PROGRESS
+    ${${PROJECT_NAME}_DOWNLOAD_ARGS}
   )
 endif()
 
