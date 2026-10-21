@@ -133,21 +133,32 @@ target_link_libraries(${PROJECT_NAME}_node
   ${OpenCV_LIBRARIES}
 )
 
-# file(
-#   DOWNLOAD https://github.com/tue-robotics/${PROJECT_NAME}/releases/download/yolo26m/yolo26m.onnx ${CMAKE_CURRENT_BINARY_DIR}/resources/yolo26m/yolo26m.onnx
-#   EXPECTED_HASH "SHA256=0eb68248f3868dfd8341e2e7d90e1e9d9594325e984574c11b0404f27673a419"
-#   SHOW_PROGRESS
-# )
-file(
-  DOWNLOAD https://github.com/tue-robotics/${PROJECT_NAME}/releases/download/yolo11m/yolo11m.onnx ${CMAKE_CURRENT_BINARY_DIR}/resources/yolo11m/yolo11m.onnx
-  EXPECTED_HASH "SHA256=0eb68248f3868dfd8341e2e7d90e1e9d9594325e984574c11b0404f27673a419"
-  SHOW_PROGRESS
-)
-file(
-  DOWNLOAD https://github.com/tue-robotics/${PROJECT_NAME}/releases/download/yolo11m/coco.yaml ${CMAKE_CURRENT_BINARY_DIR}/resources/yolo11m/coco.yaml
-  EXPECTED_HASH "SHA256=721773c881cb7de92339c9e0f86dbf6e90b9ed551c1cf8d5bd6f043497e241aa"
-  SHOW_PROGRESS
-)
+if(YOLO_ONNX_ROS_ENABLE_TENSORRT)
+  file(
+    DOWNLOAD https://github.com/tue-robotics/${PROJECT_NAME}/releases/download/yolo26m/yolo26m.trt ${CMAKE_CURRENT_BINARY_DIR}/resources/yolo26m/yolo26m.trt
+    EXPECTED_HASH "SHA256=8b605d40955ede9bc49221fe4096a8e64e66dc1503b50322f229ed0e6dee0c43"
+    SHOW_PROGRESS
+  )
+  file(
+    DOWNLOAD https://github.com/tue-robotics/${PROJECT_NAME}/releases/download/yolo26m/coco.names ${CMAKE_CURRENT_BINARY_DIR}/resources/yolo26m/coco.names
+    EXPECTED_HASH "SHA256=bd17f1ee35d5f3c862a4894605855abbb9dda4b0621fdb0ac4c2c8c7bb7e730a"
+    SHOW_PROGRESS
+  )
+endif()
+
+# The unit tests use the ONNX backend, so the ONNX model is also needed when testing a TensorRT build
+if(NOT YOLO_ONNX_ROS_ENABLE_TENSORRT OR CATKIN_ENABLE_TESTING)
+  file(
+    DOWNLOAD https://github.com/tue-robotics/${PROJECT_NAME}/releases/download/yolo26m/yolo26m.onnx ${CMAKE_CURRENT_BINARY_DIR}/resources/yolo26m/yolo26m.onnx
+    EXPECTED_HASH "SHA256=17d9d4491c8954d69ce95bc8f707d883cae4a1b6508ee9f4dca8e0b38b1addc9"
+    SHOW_PROGRESS
+  )
+  file(
+    DOWNLOAD https://github.com/tue-robotics/${PROJECT_NAME}/releases/download/yolo26m/coco.yaml ${CMAKE_CURRENT_BINARY_DIR}/resources/yolo26m/coco.yaml
+    EXPECTED_HASH "SHA256=721773c881cb7de92339c9e0f86dbf6e90b9ed551c1cf8d5bd6f043497e241aa"
+    SHOW_PROGRESS
+  )
+endif()
 
 # ------------------------------------------------------------------------------------------------
 #                                               INSTALL
@@ -196,7 +207,7 @@ if (CATKIN_ENABLE_TESTING)
   catkin_add_catkin_lint_test("-W2 --ignore EXTERNAL_DIRECTORY --ignore EXTERNAL_FILE --ignore EXTERNAL_INCLUDE_PATH --ignore HEADER_OUTSIDE_PACKAGE_INCLUDE_PATH --ignore MISSING_DIRECTORY --ignore MISSING_DEPEND --ignore AMBIGUOUS_INCLUDE_PATH --ignore UNINSTALLED_SCRIPT --ignore GLOBAL_VAR_COLLISION --ignore EXTERNAL_INTERFACE_PATH")
 
   # Utils unit tests (no models needed)
-  catkin_add_gmock(yolo_test test/yolo_test.cpp WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/resources/yolo11m")
+  catkin_add_gmock(yolo_test test/yolo_test.cpp WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/resources/yolo26m")
   if(TARGET yolo_test)
     target_link_libraries(
       yolo_test

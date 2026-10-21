@@ -21,7 +21,7 @@ protected:
 
         // Setup common parameters
         YoloWrapper wrapper;
-        std::tie(wrapper, params) = Initialize("./yolo11m.onnx", YOLO::Backend::kOnnx);
+        std::tie(wrapper, params) = Initialize("./yolo26m.onnx", YOLO::Backend::kOnnx);
         yolo = std::move(wrapper.onnxDetector);
 
         NonSquareImgSize = { testImage_800x600.cols, testImage_800x600.rows };
