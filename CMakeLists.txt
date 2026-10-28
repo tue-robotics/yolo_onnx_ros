@@ -11,16 +11,36 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 option(YOLO_ONNX_ROS_ENABLE_TENSORRT "Build TensorRT backend support" ON)
 
-find_package(catkin REQUIRED
-  COMPONENTS
+find_package(CUDAToolkit QUIET)
+
+set(${PROJECT_NAME}_CATKIN_COMPONENTS
   onnxruntime_ros
 )
+set(${PROJECT_NAME}_CATKIN_DEPENDS
+  onnxruntime_ros
+)
+if(YOLO_ONNX_ROS_ENABLE_TENSORRT AND CUDAToolkit_FOUND)
+  set(${PROJECT_NAME}_TENSORRT_ENABLED TRUE)
+  list(APPEND ${PROJECT_NAME}_CATKIN_COMPONENTS tensorrt_ros)
+  list(APPEND ${PROJECT_NAME}_CATKIN_DEPENDS tensorrt_ros)
+else()
+  if(YOLO_ONNX_ROS_ENABLE_TENSORRT)
+    message(STATUS "CUDA toolkit not found, building without the TensorRT backend")
+  endif()
+  set(${PROJECT_NAME}_TENSORRT_ENABLED FALSE)
+endif()
 
-set(${PROJECT_NAME}_CATKIN_DEPENDS onnxruntime_ros)
+find_package(catkin REQUIRED
+  COMPONENTS
+  ${${PROJECT_NAME}_CATKIN_COMPONENTS}
+)
 
-if(YOLO_ONNX_ROS_ENABLE_TENSORRT)
-  find_package(tensorrt_ros REQUIRED)
+find_package(console_bridge REQUIRED)
+find_package(OpenCV REQUIRED)
 
+set(${PROJECT_NAME}_CUDA_ENABLED ${onnxruntime_ros_CUDA_ENABLED})
+
+if(${PROJECT_NAME}_TENSORRT_ENABLED)
   set(${PROJECT_NAME}_YOLOS_TRT_ROOT
       "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/YOLOs-CPP-TensorRT")
   set(${PROJECT_NAME}_YOLOS_TRT_INCLUDE_DIR
@@ -37,21 +57,10 @@ if(YOLO_ONNX_ROS_ENABLE_TENSORRT)
       "${${PROJECT_NAME}_YOLOS_TRT_CUDA_SOURCE}. Initialize the submodule or disable TensorRT support.")
   endif()
 
-  list(APPEND ${PROJECT_NAME}_CATKIN_DEPENDS tensorrt_ros)
   list(APPEND ${PROJECT_NAME}_INCLUDE_DIRS ${${PROJECT_NAME}_YOLOS_TRT_INCLUDE_DIR})
 endif()
 
-find_package(console_bridge REQUIRED)
-find_package(OpenCV REQUIRED)
-
-set(${PROJECT_NAME}_CUDA_ENABLED ${onnxruntime_ros_CUDA_ENABLED})
-if(YOLO_ONNX_ROS_ENABLE_TENSORRT)
-  set(${PROJECT_NAME}_TENSORRT_ENABLED TRUE)
-else()
-  set(${PROJECT_NAME}_TENSORRT_ENABLED FALSE)
-endif()
-
-if(YOLO_ONNX_ROS_ENABLE_TENSORRT AND NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
+if(${PROJECT_NAME}_TENSORRT_ENABLED AND NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
   if(CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "aarch64" AND
      (EXISTS "/etc/nv_tegra_release" OR EXISTS "/usr/lib/aarch64-linux-gnu/tegra"))
     set(CMAKE_CUDA_ARCHITECTURES "72;87")
@@ -60,9 +69,11 @@ if(YOLO_ONNX_ROS_ENABLE_TENSORRT AND NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
   endif()
 endif()
 
-if(${PROJECT_NAME}_CUDA_ENABLED OR YOLO_ONNX_ROS_ENABLE_TENSORRT)
+if(${PROJECT_NAME}_CUDA_ENABLED OR ${PROJECT_NAME}_TENSORRT_ENABLED)
   enable_language(CUDA)
-  find_package(CUDAToolkit REQUIRED)
+  if(NOT CUDAToolkit_FOUND)
+    message(FATAL_ERROR "onnxruntime_ros is built with CUDA, but the CUDA toolkit could not be found")
+  endif()
   set(${PROJECT_NAME}_CUDA_CATKIN_DEPENDS "CUDAToolkit")
   set(${PROJECT_NAME}_CUDA_INCLUDE_DIRS "${CUDAToolkit_INCLUDE_DIRS}")
   set(${PROJECT_NAME}_CUDA_TARGET_LINK_LIBRARIES "CUDA::cudart")
@@ -100,7 +111,7 @@ add_library(${PROJECT_NAME}
   src/yolo_inference.cpp
 )
 target_link_libraries(${PROJECT_NAME} PRIVATE ${${PROJECT_NAME}_CUDA_TARGET_LINK_LIBRARIES} ${console_bridge_LIBRARIES} ${OpenCV_LIBRARIES} ${catkin_LIBRARIES})
-if(YOLO_ONNX_ROS_ENABLE_TENSORRT)
+if(${PROJECT_NAME}_TENSORRT_ENABLED)
   find_package(Threads REQUIRED)
   add_library(${PROJECT_NAME}_cuda_preprocessing STATIC ${${PROJECT_NAME}_YOLOS_TRT_CUDA_SOURCE})
   # nvcc rejects the host-compiler warning flags set globally above.
@@ -110,15 +121,11 @@ if(YOLO_ONNX_ROS_ENABLE_TENSORRT)
   )
   target_include_directories(${PROJECT_NAME}_cuda_preprocessing SYSTEM PRIVATE
     ${${PROJECT_NAME}_YOLOS_TRT_INCLUDE_DIR}
-    ${tensorrt_ros_INCLUDE_DIRS}
   )
   target_link_libraries(${PROJECT_NAME}_cuda_preprocessing PRIVATE CUDA::cudart)
 
   target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC
     ${${PROJECT_NAME}_YOLOS_TRT_INCLUDE_DIR}
-  )
-  target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC
-    ${tensorrt_ros_INCLUDE_DIRS}
   )
   target_link_libraries(${PROJECT_NAME} PRIVATE ${PROJECT_NAME}_cuda_preprocessing ${tensorrt_ros_LIBRARIES} Threads::Threads)
   set_target_properties(${PROJECT_NAME} PROPERTIES
@@ -141,7 +148,7 @@ if(NOT "$ENV{GITHUB_TOKEN}" STREQUAL "")
   list(APPEND ${PROJECT_NAME}_DOWNLOAD_ARGS HTTPHEADER "Authorization: Bearer $ENV{GITHUB_TOKEN}")
 endif()
 
-if(YOLO_ONNX_ROS_ENABLE_TENSORRT)
+if(${PROJECT_NAME}_TENSORRT_ENABLED)
   file(
     DOWNLOAD https://github.com/tue-robotics/${PROJECT_NAME}/releases/download/yolo26m/yolo26m.trt ${CMAKE_CURRENT_BINARY_DIR}/resources/yolo26m/yolo26m.trt
     EXPECTED_HASH "SHA256=8b605d40955ede9bc49221fe4096a8e64e66dc1503b50322f229ed0e6dee0c43"
@@ -155,7 +162,7 @@ if(YOLO_ONNX_ROS_ENABLE_TENSORRT)
 endif()
 
 # The unit tests use the ONNX backend, so the ONNX model is also needed when testing a TensorRT build
-if(NOT YOLO_ONNX_ROS_ENABLE_TENSORRT OR CATKIN_ENABLE_TESTING)
+if(NOT ${PROJECT_NAME}_TENSORRT_ENABLED OR CATKIN_ENABLE_TESTING)
   file(
     DOWNLOAD https://github.com/tue-robotics/${PROJECT_NAME}/releases/download/yolo26m/yolo26m.onnx ${CMAKE_CURRENT_BINARY_DIR}/resources/yolo26m/yolo26m.onnx
     EXPECTED_HASH "SHA256=17d9d4491c8954d69ce95bc8f707d883cae4a1b6508ee9f4dca8e0b38b1addc9"
@@ -183,7 +190,7 @@ install(
   DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
 )
 
-if(YOLO_ONNX_ROS_ENABLE_TENSORRT)
+if(${PROJECT_NAME}_TENSORRT_ENABLED)
   install(
     DIRECTORY ${${PROJECT_NAME}_YOLOS_TRT_INCLUDE_DIR}/yolos
     DESTINATION ${CATKIN_GLOBAL_INCLUDE_DESTINATION}
