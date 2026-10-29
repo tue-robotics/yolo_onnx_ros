@@ -221,6 +221,7 @@ if (CATKIN_ENABLE_TESTING)
     target_link_libraries(
       yolo_test
       ${PROJECT_NAME}
+      ${${PROJECT_NAME}_CUDA_TARGET_LINK_LIBRARIES}
       ${catkin_LIBRARIES}
       ${OpenCV_LIBRARIES}
       )

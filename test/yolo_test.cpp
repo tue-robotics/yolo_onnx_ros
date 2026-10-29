@@ -4,6 +4,10 @@
 #include <gmock/gmock.h>
 #include <opencv2/opencv.hpp>
 
+#if defined(YOLO_ONNX_ROS_CUDA_ENABLED) && YOLO_ONNX_ROS_CUDA_ENABLED
+#include <cuda_runtime.h>
+#endif
+
 using namespace testing;
 
 class YoloInferenceTest : public testing::Test
@@ -11,6 +15,15 @@ class YoloInferenceTest : public testing::Test
 protected:
     void SetUp() override
     {
+#if defined(YOLO_ONNX_ROS_CUDA_ENABLED) && YOLO_ONNX_ROS_CUDA_ENABLED
+        // A CUDA build always runs the ONNX backend on the GPU, so skip when no GPU is available (e.g. CI)
+        int deviceCount = 0;
+        if (cudaGetDeviceCount(&deviceCount) != cudaSuccess || deviceCount == 0)
+        {
+            GTEST_SKIP() << "Built with CUDA, but no CUDA device is available";
+        }
+#endif
+
         // Create test images with different characteristics
         testImage_640x640 = cv::Mat::ones(640, 640, CV_8UC3) * 255;
         testImage_800x600 = cv::Mat::ones(600, 800, CV_8UC3) * 128;

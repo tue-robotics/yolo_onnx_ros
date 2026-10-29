@@ -3,11 +3,21 @@ name: CI
 on: [push, pull_request, workflow_dispatch]
 
 jobs:
-  tue-ci:
-    name: TUe CI - ${{ github.event_name }}
+  tue-ci-onnx-cpu:
+    name: TUe CI (ONNX@CPU) - ${{ github.event_name }}
     runs-on: ubuntu-latest
     steps:
       - name: TUe CI
         uses: tue-robotics/tue-env/ci/main@master
         with:
+          package: ${{ github.event.repository.name }}
+
+  tue-ci-trt-cuda:
+    name: TUe CI (TRT@CUDA) - ${{ github.event_name }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: TUe CI
+        uses: tue-robotics/tue-env/ci/main@master
+        with:
+          image: ghcr.io/tue-robotics/tue-env-ros-noetic-cu12.8.2-devel
           package: ${{ github.event.repository.name }}
