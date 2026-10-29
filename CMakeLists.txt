@@ -9,7 +9,7 @@ add_compile_options(-Wextra -Werror=extra)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-option(YOLO_ONNX_ROS_ENABLE_TENSORRT "Build TensorRT backend support" ON)
+option(${PROJECT_NAME}_TENSORRT_ENABLED "Build TensorRT backend support" ON)
 
 find_package(CUDAToolkit QUIET)
 
