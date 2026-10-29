@@ -69,7 +69,7 @@ Note (2): Due to ONNX Runtime, we need to use CUDA 12.8 and cuDNN 9. Keep in min
 
 ## TensorRT Backend (Optional) ⚡
 
-The TensorRT backend is disabled by default and requires the `YOLOs-CPP-TensorRT` submodule.
+The TensorRT backend is enabled by default when the CUDA toolkit is found, and requires the `YOLOs-CPP-TensorRT` submodule.
 
 1. Initialize the submodule (only needed once per clone):
 
@@ -77,17 +77,16 @@ The TensorRT backend is disabled by default and requires the `YOLOs-CPP-TensorRT
    git submodule update --init --recursive
    ```
 
-2. Enable TensorRT at configure time. Both the CMake option and the matching environment variable must be set, since `package.xml` only declares `tensorrt_ros` as a dependency when the environment variable is present:
+2. Build the package. Without the CUDA toolkit, it falls back to an ONNX-only build. Optionally set the CUDA architectures of your GPU:
 
    ```bash
-   export YOLO_ONNX_ROS_ENABLE_TENSORRT=true
-   catkin config --cmake-args -DYOLO_ONNX_ROS_ENABLE_TENSORRT=ON -DCMAKE_CUDA_ARCHITECTURES=<your-gpu-architecture>
+   catkin config --cmake-args -DCMAKE_CUDA_ARCHITECTURES=<your-gpu-architecture>
    catkin build yolo_onnx_ros
    ```
 
 3. TensorRT inference requires a serialized `.trt`/`.engine` file (not the `.onnx` file) and a `coco.names` labels file placed next to it, mirroring the `coco.yaml` used for the ONNX backend. Without a labels file, class names stay empty even though detections still work.
 
-Leaving `YOLO_ONNX_ROS_ENABLE_TENSORRT` unset (or `OFF`) builds an ONNX-only package with no TensorRT dependency.
+Set `-Dyolo_onnx_ros_TENSORRT_ENABLED=OFF` to build an ONNX-only package, even when the CUDA toolkit is available.
 
 ## Build 🛠️
 
@@ -132,7 +131,7 @@ The package builds a standalone `yolo_onnx_ros_node` executable for testing outs
 ./yolo_onnx_ros_node <model_path> <images_dir> [onnx|tensorrt]
 ```
 
-The backend argument is optional and defaults to `onnx`. Use `tensorrt` only if the package was built with `YOLO_ONNX_ROS_ENABLE_TENSORRT=ON`.
+The backend argument is optional and defaults to `onnx`. Use `tensorrt` only if the package was built with the TensorRT backend.
 
 To run the detector from your own C++ application:
 ```c++
