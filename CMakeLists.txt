@@ -19,12 +19,12 @@ set(${PROJECT_NAME}_CATKIN_COMPONENTS
 set(${PROJECT_NAME}_CATKIN_DEPENDS
   onnxruntime_ros
 )
-if(YOLO_ONNX_ROS_ENABLE_TENSORRT AND CUDAToolkit_FOUND)
+if(${PROJECT_NAME}_TENSORRT_ENABLED AND CUDAToolkit_FOUND)
   set(${PROJECT_NAME}_TENSORRT_ENABLED TRUE)
   list(APPEND ${PROJECT_NAME}_CATKIN_COMPONENTS tensorrt_ros)
   list(APPEND ${PROJECT_NAME}_CATKIN_DEPENDS tensorrt_ros)
 else()
-  if(YOLO_ONNX_ROS_ENABLE_TENSORRT)
+  if(${PROJECT_NAME}_TENSORRT_ENABLED)
     message(STATUS "CUDA toolkit not found, building without the TensorRT backend")
   endif()
   set(${PROJECT_NAME}_TENSORRT_ENABLED FALSE)
@@ -52,7 +52,7 @@ if(${PROJECT_NAME}_TENSORRT_ENABLED)
   if(NOT EXISTS "${${PROJECT_NAME}_YOLOS_TRT_HEADER}" OR
      NOT EXISTS "${${PROJECT_NAME}_YOLOS_TRT_CUDA_SOURCE}")
     message(FATAL_ERROR
-      "YOLO_ONNX_ROS_ENABLE_TENSORRT=ON requires the YOLOs-CPP-TensorRT submodule. "
+      "${PROJECT_NAME}_TENSORRT_ENABLED=ON requires the YOLOs-CPP-TensorRT submodule. "
       "Expected ${${PROJECT_NAME}_YOLOS_TRT_HEADER} and "
       "${${PROJECT_NAME}_YOLOS_TRT_CUDA_SOURCE}. Initialize the submodule or disable TensorRT support.")
   endif()
