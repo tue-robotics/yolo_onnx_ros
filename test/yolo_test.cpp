@@ -1,7 +1,6 @@
 #include "yolo_onnx_ros/yolo_inference.hpp"
 #include "yolo_onnx_ros/detection.hpp"
 #include <gtest/gtest.h>
-#include <gmock/gmock.h>
 #include <opencv2/opencv.hpp>
 
 #if defined(YOLO_ONNX_ROS_CUDA_ENABLED) && YOLO_ONNX_ROS_CUDA_ENABLED
