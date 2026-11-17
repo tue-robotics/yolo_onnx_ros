@@ -25,6 +25,7 @@
   <doc_depend>doxygen</doc_depend>
 
   <export>
+    <build_type>ament_cmake</build_type>
     <rosdoc config="rosdoc.yaml" />
   </export>
 

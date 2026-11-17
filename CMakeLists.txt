@@ -113,12 +113,15 @@ if(${PROJECT_NAME}_TENSORRT_ENABLED)
     ${${PROJECT_NAME}_YOLOS_TRT_INCLUDE_DIR}
   )
   target_link_libraries(${PROJECT_NAME}_cuda_preprocessing PRIVATE CUDA::cudart)
-  target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE
-    ${${PROJECT_NAME}_YOLOS_TRT_INCLUDE_DIR}
+  # detection.hpp (public) includes the yolos headers, which include NvInfer.h
+  target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC
+    $<BUILD_INTERFACE:${${PROJECT_NAME}_YOLOS_TRT_INCLUDE_DIR}>
+  )
+  target_link_libraries(${PROJECT_NAME} PUBLIC
+    tensorrt_ros::tensorrt_ros
   )
   target_link_libraries(${PROJECT_NAME} PRIVATE
     ${PROJECT_NAME}_cuda_preprocessing
-    tensorrt_ros::tensorrt_ros
     Threads::Threads
   )
   set_target_properties(${PROJECT_NAME} PROPERTIES POSITION_INDEPENDENT_CODE ON)
@@ -174,12 +177,13 @@ if(${PROJECT_NAME}_TENSORRT_ENABLED)
     DESTINATION share/${PROJECT_NAME}/3rdparty/YOLOs-CPP-TensorRT)
 endif()
 
-install(TARGETS ${PROJECT_NAME} ${PROJECT_NAME}_node
+install(TARGETS ${PROJECT_NAME}
   EXPORT export_${PROJECT_NAME}
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin
 )
+install(TARGETS ${PROJECT_NAME}_node DESTINATION lib/${PROJECT_NAME})
 install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/resources DESTINATION share/${PROJECT_NAME})
 
 if(BUILD_TESTING)
@@ -203,6 +207,9 @@ ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
 ament_export_dependencies(OpenCV onnxruntime_ros)
 if(${PROJECT_NAME}_CUDA_ENABLED)
   ament_export_dependencies(CUDAToolkit)
+endif()
+if(${PROJECT_NAME}_TENSORRT_ENABLED)
+  ament_export_dependencies(tensorrt_ros)
 endif()
 
 ament_package()
