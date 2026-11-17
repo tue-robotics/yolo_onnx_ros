@@ -11,6 +11,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 option(${PROJECT_NAME}_TENSORRT_ENABLED "Build TensorRT backend support" ON)
 
+# FindCUDAToolkit also finds a toolkit through /usr/local/cuda when nvcc isn't on the PATH,
+# so check the compiler separately before enabling the TensorRT backend, which compiles CUDA code.
+include(CheckLanguage)
+check_language(CUDA)
 find_package(CUDAToolkit QUIET)
 
 set(${PROJECT_NAME}_CATKIN_COMPONENTS
@@ -19,13 +23,13 @@ set(${PROJECT_NAME}_CATKIN_COMPONENTS
 set(${PROJECT_NAME}_CATKIN_DEPENDS
   onnxruntime_ros
 )
-if(${PROJECT_NAME}_TENSORRT_ENABLED AND CUDAToolkit_FOUND)
+if(${PROJECT_NAME}_TENSORRT_ENABLED AND CMAKE_CUDA_COMPILER AND CUDAToolkit_FOUND)
   set(${PROJECT_NAME}_TENSORRT_ENABLED TRUE)
   list(APPEND ${PROJECT_NAME}_CATKIN_COMPONENTS tensorrt_ros)
   list(APPEND ${PROJECT_NAME}_CATKIN_DEPENDS tensorrt_ros)
 else()
   if(${PROJECT_NAME}_TENSORRT_ENABLED)
-    message(STATUS "CUDA toolkit not found, building without the TensorRT backend")
+    message(STATUS "CUDA compiler or toolkit not found, building without the TensorRT backend")
   endif()
   set(${PROJECT_NAME}_TENSORRT_ENABLED FALSE)
 endif()
@@ -69,8 +73,12 @@ if(${PROJECT_NAME}_TENSORRT_ENABLED AND NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
   endif()
 endif()
 
-if(${PROJECT_NAME}_CUDA_ENABLED OR ${PROJECT_NAME}_TENSORRT_ENABLED)
+# Only the TensorRT backend compiles CUDA code; the ONNX Runtime CUDA path just needs the toolkit.
+if(${PROJECT_NAME}_TENSORRT_ENABLED)
   enable_language(CUDA)
+endif()
+
+if(${PROJECT_NAME}_CUDA_ENABLED OR ${PROJECT_NAME}_TENSORRT_ENABLED)
   if(NOT CUDAToolkit_FOUND)
     message(FATAL_ERROR "onnxruntime_ros is built with CUDA, but the CUDA toolkit could not be found")
   endif()
