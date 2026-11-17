@@ -19,14 +19,18 @@ find_package(ament_cmake REQUIRED)
 find_package(console_bridge REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(onnxruntime_ros REQUIRED)
+# FindCUDAToolkit also finds a toolkit through /usr/local/cuda when nvcc isn't on the PATH,
+# so check the compiler separately before enabling the TensorRT backend, which compiles CUDA code.
+include(CheckLanguage)
+check_language(CUDA)
 find_package(CUDAToolkit QUIET)
 
-if(${PROJECT_NAME}_TENSORRT_ENABLED AND CUDAToolkit_FOUND)
+if(${PROJECT_NAME}_TENSORRT_ENABLED AND CMAKE_CUDA_COMPILER AND CUDAToolkit_FOUND)
   set(${PROJECT_NAME}_TENSORRT_ENABLED TRUE)
   find_package(tensorrt_ros REQUIRED)
 else()
   if(${PROJECT_NAME}_TENSORRT_ENABLED)
-    message(STATUS "CUDA toolkit not found, building without the TensorRT backend")
+    message(STATUS "CUDA compiler or toolkit not found, building without the TensorRT backend")
   endif()
   set(${PROJECT_NAME}_TENSORRT_ENABLED FALSE)
 endif()
@@ -53,7 +57,8 @@ if(${PROJECT_NAME}_TENSORRT_ENABLED AND NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
   endif()
 endif()
 
-if(${PROJECT_NAME}_CUDA_ENABLED)
+# Only the TensorRT backend compiles CUDA code; the ONNX Runtime CUDA path just needs the toolkit.
+if(${PROJECT_NAME}_TENSORRT_ENABLED)
   enable_language(CUDA)
 endif()
 
