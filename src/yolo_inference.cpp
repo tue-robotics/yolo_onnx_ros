@@ -27,11 +27,15 @@
 #define min(a, b) (((a) < (b)) ? (a) : (b))
 
 #if defined(YOLO_ONNX_ROS_CUDA_ENABLED) && YOLO_ONNX_ROS_CUDA_ENABLED
+#include <cuda_fp16.h>
+
 namespace Ort
 {
 template <> struct TypeToTensorType<half>
 {
-    static constexpr ONNXTensorElementDataType type = ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT16;
+    // The member name is fixed by ONNX Runtime's TypeToTensorType trait
+    static constexpr ONNXTensorElementDataType type = // NOLINT(readability-identifier-naming)
+        ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT16;
 };
 } // namespace Ort
 #endif
