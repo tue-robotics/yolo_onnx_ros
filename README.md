@@ -135,5 +135,6 @@ Pass `YOLO::Backend::TENSORRT` instead to use the TensorRT backend (see [TensorR
 
 The ROS 2 migration renamed the public API to the tue-robotics naming style: `YOLO_V8` is now `YoloV8`,
 `DL_INIT_PARAM`/`DL_RESULT` are now `DlInitParam`/`DlResult`, the functions are `camelBack`, and `ModelType` is a
-scoped enum. [docs/api_changes_lint_cleanup.md](docs/api_changes_lint_cleanup.md) lists every change with its
-replacement, plus a `sed` script for updating dependent packages.
+scoped enum. `sam_onnx_ros` renamed its API the same way.
+[docs/api_changes_lint_cleanup.md](docs/api_changes_lint_cleanup.md) lists every change in both packages with its
+replacement, plus a `sed` script for updating dependent packages such as `ed_sensor_integration`.

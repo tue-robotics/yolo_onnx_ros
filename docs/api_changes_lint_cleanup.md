@@ -1,13 +1,16 @@
-# yolo_onnx_ros public API changes (clang-tidy cleanup)
+# yolo_onnx_ros and sam_onnx_ros public API changes (ROS 2 migration)
 
 > **Who needs this:** anyone maintaining a package that includes
-> `yolo_onnx_ros/detection.hpp` or `yolo_onnx_ros/yolo_inference.hpp`. At the
-> moment that is `ed_sensor_integration` (`sam_seg_module.cpp`).
+> `yolo_onnx_ros/*.hpp` or `sam_onnx_ros/*.hpp`. At the moment that is
+> `ed_sensor_integration` (`sam_seg_module.cpp`), which uses both.
 >
-> These changes landed while bringing `yolo_onnx_ros` to zero clang-tidy
-> findings during the ROS 2 migration. They are **source-breaking**: a
-> dependent package will not compile until it is updated. None of them change
-> runtime behaviour.
+> Both packages were brought to zero clang-tidy findings during their ROS 2
+> migration (`yolo_onnx_ros` #15, `sam_onnx_ros` #11), and both renamed their
+> public API to the tue-robotics naming style the same way. The changes are
+> **source-breaking**: a dependent package will not compile until it is
+> updated. The renames themselves don't change runtime behaviour.
+>
+> The ROS 1 versions stay available on each repo's `ros1` branch.
 
 ---
 
@@ -17,18 +20,13 @@ Run this from the root of your package. Everything it reports needs an edit.
 
 ```bash
 grep -rn --include=*.h --include=*.hpp --include=*.cpp -E \
-  '\b(YOLO_V8|DL_INIT_PARAM|DL_RESULT|_DL_INIT_PARAM|_DL_RESULT|MODEL_TYPE)\b|\b(YOLO_DETECT_V8|YOLO_POSE|YOLO_CLS)(_HALF|_V8_HALF)?\b|\bk(Onnx|TensorRT)\b|\b(Initialize|Detector|ReadYaml|CreateSession|RunSession|PreProcess)\s*\(|YOLO_ONNX_(TRUE|FALSE)\b' .
+  '\b(YOLO_V8|DL_INIT_PARAM|DL_RESULT|_DL_INIT_PARAM|_DL_RESULT|MODEL_TYPE)\b|\b(YOLO_DETECT_V8|YOLO_POSE|YOLO_CLS)(_HALF|_V8_HALF)?\b|\bSAM_SEGMENT_(ENCODER|DECODER)\b|\bk(Onnx|TensorRT|SpeedSam)\b|\b(Initialize|Detector|ReadYaml|SegmentAnything|CreateSession|RunSession|PreProcess|ScaleBboxPoints|PrepareInputTensor|PostProcess|BlobFromImage)\s*\(|(YOLO|SAM)_ONNX_(TRUE|FALSE)\b' .
 ```
-
-`sam_onnx_ros` uses the same names inside its `SEG::` namespace
-(`SEG::DL_INIT_PARAM`, `SEG::DL_RESULT`, `SEG::Backend::kOnnx`, and the global
-`Initialize(encoder, decoder, backend)` overload). The grep reports those too.
-They were **not** renamed, so leave them alone.
 
 ### Coming from before `YoloWrapper`
 
 `ed_sensor_integration`'s `master` predates `YoloWrapper` and does not compile
-against `yolo_onnx_ros`'s `master` either. If your code still has
+against `yolo_onnx_ros`'s ROS 1 `master` either. If your code still has
 `std::unique_ptr<YOLO_V8>` as the detector returned by `Initialize()`, first
 switch to `YoloWrapper` (as `ed_sensor_integration`'s `subfeature/sam_tensor_rt`
 branch already does), then apply the renames below:
@@ -48,7 +46,9 @@ resYolo = detector(yolo_wrapper, img);
 
 ---
 
-## 1. Renamed types
+## 1. yolo_onnx_ros
+
+### Types
 
 `readability-identifier-naming` requires `CamelCase` for classes. Pure renames.
 
@@ -57,14 +57,14 @@ resYolo = detector(yolo_wrapper, img);
 | `YOLO_V8` | `YoloV8` | `yolo_onnx_ros/yolo_inference.hpp` |
 | `DL_INIT_PARAM` | `DlInitParam` | `yolo_onnx_ros/yolo_inference.hpp` |
 | `DL_RESULT` | `DlResult` | `yolo_onnx_ros/yolo_inference.hpp` |
-| `MODEL_TYPE` | `ModelType` (now an `enum class`, see §3) | `yolo_onnx_ros/yolo_inference.hpp` |
+| `MODEL_TYPE` | `ModelType` (now an `enum class`) | `yolo_onnx_ros/yolo_inference.hpp` |
 
 `DlInitParam` and `DlResult` are now plain `struct`s instead of
 `typedef struct _DL_INIT_PARAM {...} DL_INIT_PARAM;`. The `_DL_INIT_PARAM` and
 `_DL_RESULT` names (reserved identifiers) no longer exist. Fields are unchanged,
 and `DlResult::classId`/`confidence` are now zero-initialised.
 
-## 2. Renamed functions
+### Functions
 
 `camelBack` for functions. Same arguments, same semantics.
 
@@ -77,11 +77,11 @@ and `DlResult::classId`/`confidence` are now zero-initialised.
 | `YOLO_V8::RunSession()` | `YoloV8::runSession()` | `yolo_onnx_ros/yolo_inference.hpp` |
 | `YOLO_V8::PreProcess()` | `YoloV8::preProcess()` | `yolo_onnx_ros/yolo_inference.hpp` |
 
-`preProcess()` now returns `const char*` instead of `char*`, like
+`YoloV8::preProcess()` now returns `const char*` instead of `char*`, like
 `createSession()` and `runSession()` already did. Store the result in a
 `const char*`.
 
-## 3. Scoped enums
+### Enums
 
 | Was | Now |
 | --- | --- |
@@ -94,7 +94,7 @@ convert to `int` implicitly. Code like `if (params.modelType < 4)` (FP32 vs
 FP16 models) needs an explicit comparison against the enumerators. Both enums
 now have `std::uint8_t` as their underlying type.
 
-## 4. `config.hpp`
+### `config.hpp`
 
 `YOLO_ONNX_ROS_CUDA_ENABLED` and `YOLO_ONNX_ROS_TENSORRT_ENABLED` are still
 `0`/`1`, so `#if YOLO_ONNX_ROS_TENSORRT_ENABLED` keeps working. The helper
@@ -102,36 +102,106 @@ macros `YOLO_ONNX_TRUE`/`YOLO_ONNX_FALSE` are gone.
 
 ---
 
-## 5. Mechanical migration
+## 2. sam_onnx_ros
 
-For most code, this `sed` handles §1–§3. It only rewrites unqualified names and
-`YOLO::` names, so `SEG::` names from `sam_onnx_ros` are left untouched. It
-can't tell the two apart behind a `using namespace SEG;`, so review the diff.
+Everything stays in the `SEG` namespace. Only the names inside it changed, in
+the same way as in `yolo_onnx_ros`.
 
-```bash
-grep -rlE --include=*.h --include=*.hpp --include=*.cpp \
-  'YOLO_V8|DL_INIT_PARAM|DL_RESULT|MODEL_TYPE|kOnnx|kTensorRT|YOLO_(DETECT|POSE|CLS)|Detector\(|ReadYaml|CreateSession|RunSession|PreProcess' . |
-xargs sed -i -E \
-  -e 's/(^|[^:A-Za-z0-9_])YOLO_V8\b/\1YoloV8/g' \
-  -e 's/(^|[^:A-Za-z0-9_])DL_INIT_PARAM\b/\1DlInitParam/g' \
-  -e 's/(^|[^:A-Za-z0-9_])DL_RESULT\b/\1DlResult/g' \
-  -e 's/(^|[^:A-Za-z0-9_])MODEL_TYPE\b/\1ModelType/g' \
-  -e 's/YOLO::Backend::kOnnx\b/YOLO::Backend::ONNX/g' \
-  -e 's/YOLO::Backend::kTensorRT\b/YOLO::Backend::TENSORRT/g' \
-  -e 's/(^|[^:A-Za-z0-9_])(YOLO_(DETECT_V8|POSE|CLS)(_HALF|_V8_HALF)?)\b/\1ModelType::\2/g' \
-  -e 's/(^|[^:A-Za-z0-9_])Detector\(/\1detector(/g' \
-  -e 's/(^|[^:A-Za-z0-9_])ReadYaml\(/\1readYaml(/g' \
-  -e 's/(->|\.)CreateSession\(/\1createSession(/g' \
-  -e 's/(->|\.)RunSession\(/\1runSession(/g' \
-  -e 's/(->|\.)PreProcess\(/\1preProcess(/g'
-```
+### Types
 
-`Initialize(` is deliberately left out, because `sam_onnx_ros` uses the same
-name. Rename the YOLO calls to `initialize(` by hand.
+| Was | Now | Declared in |
+| --- | --- | --- |
+| `SEG::DL_INIT_PARAM` | `SEG::DlInitParam` | `sam_onnx_ros/dl_types.hpp` |
+| `SEG::DL_RESULT` | `SEG::DlResult` | `sam_onnx_ros/dl_types.hpp` |
+| `SEG::MODEL_TYPE` | `SEG::ModelType` (now an `enum class`) | `sam_onnx_ros/dl_types.hpp` |
+
+`SAM`, `Utils` and `SamWrapper` keep their names. As in `yolo_onnx_ros`, the
+`_DL_INIT_PARAM`/`_DL_RESULT` struct tags no longer exist. `operator<<` on
+`SEG::DlInitParam` now prints `modelType` as its integer value.
+
+### Functions
+
+| Was | Now | Declared in |
+| --- | --- | --- |
+| `Initialize(encoder, decoder, backend)` | `initialize(encoder, decoder, backend)` | `sam_onnx_ros/segmentation.hpp` |
+| `SegmentAnything(wrapper, enc, dec, img, resSam, res)` | `segmentAnything(wrapper, enc, dec, img, resSam, res)` | `sam_onnx_ros/segmentation.hpp` |
+| `SAM::CreateSession()` | `SAM::createSession()` | `sam_onnx_ros/sam_inference.hpp` |
+| `SAM::RunSession()` | `SAM::runSession()` | `sam_onnx_ros/sam_inference.hpp` |
+| `Utils::PreProcess()` | `Utils::preProcess()` | `sam_onnx_ros/utils.hpp` |
+| `Utils::ScaleBboxPoints()` | `Utils::scaleBboxPoints()` | `sam_onnx_ros/utils.hpp` |
+| `Utils::PrepareInputTensor()` | `Utils::prepareInputTensor()` (now `static`) | `sam_onnx_ros/utils.hpp` |
+| `Utils::PostProcess()` | `Utils::postProcess()` (now `static`) | `sam_onnx_ros/utils.hpp` |
+| `Utils::BlobFromImage()` | `Utils::blobFromImage()` | `sam_onnx_ros/utils.hpp` |
+
+`Utils::~Utils()` is now `= default`.
+
+### Enums
+
+| Was | Now |
+| --- | --- |
+| `SEG::Backend::kOnnx` | `SEG::Backend::ONNX` |
+| `SEG::Backend::kSpeedSam` | `SEG::Backend::SPEED_SAM` |
+| `SEG::SAM_SEGMENT_ENCODER`, `SEG::SAM_SEGMENT_DECODER` | `SEG::ModelType::SAM_SEGMENT_ENCODER`, `SEG::ModelType::SAM_SEGMENT_DECODER` |
 
 ---
 
-## 6. Packaging changes (not source-breaking)
+## 3. Mechanical migration
+
+For most code, this `sed` handles §1 and §2. Review the diff afterwards. It
+renames `Initialize(`, `Detector(` and `SegmentAnything(` wherever they are
+called as free functions, so check that your package has no unrelated function
+with one of those names. An unqualified `SAM_SEGMENT_ENCODER` (inside
+`namespace SEG` or behind `using namespace SEG;`) is not rewritten; qualify it
+by hand.
+
+```bash
+grep -rlE --include=*.h --include=*.hpp --include=*.cpp \
+  'YOLO_V8|DL_INIT_PARAM|DL_RESULT|MODEL_TYPE|SAM_SEGMENT_|kOnnx|kTensorRT|kSpeedSam|YOLO_(DETECT|POSE|CLS)|Initialize\(|Detector\(|ReadYaml|SegmentAnything|CreateSession|RunSession|PreProcess|ScaleBboxPoints|PrepareInputTensor|PostProcess|BlobFromImage' . |
+xargs sed -i -E \
+  -e 's/\bYOLO_V8\b/YoloV8/g' \
+  -e 's/\bDL_INIT_PARAM\b/DlInitParam/g' \
+  -e 's/\bDL_RESULT\b/DlResult/g' \
+  -e 's/\bMODEL_TYPE\b/ModelType/g' \
+  -e 's/Backend::kOnnx\b/Backend::ONNX/g' \
+  -e 's/Backend::kTensorRT\b/Backend::TENSORRT/g' \
+  -e 's/Backend::kSpeedSam\b/Backend::SPEED_SAM/g' \
+  -e 's/(^|[^:A-Za-z0-9_])(YOLO_(DETECT_V8|POSE|CLS)(_HALF|_V8_HALF)?)\b/\1ModelType::\2/g' \
+  -e 's/SEG::(SAM_SEGMENT_(ENCODER|DECODER))\b/SEG::ModelType::\1/g' \
+  -e 's/(^|[^:.>A-Za-z0-9_])Initialize\(/\1initialize(/g' \
+  -e 's/(^|[^:.>A-Za-z0-9_])Detector\(/\1detector(/g' \
+  -e 's/(^|[^:.>A-Za-z0-9_])ReadYaml\(/\1readYaml(/g' \
+  -e 's/(^|[^:.>A-Za-z0-9_])SegmentAnything\(/\1segmentAnything(/g' \
+  -e 's/(->|\.|::)CreateSession\(/\1createSession(/g' \
+  -e 's/(->|\.|::)RunSession\(/\1runSession(/g' \
+  -e 's/(->|\.|::)PreProcess\(/\1preProcess(/g' \
+  -e 's/(->|\.|::)ScaleBboxPoints\(/\1scaleBboxPoints(/g' \
+  -e 's/(->|\.|::)PrepareInputTensor\(/\1prepareInputTensor(/g' \
+  -e 's/(->|\.|::)PostProcess\(/\1postProcess(/g' \
+  -e 's/(->|\.|::)BlobFromImage\(/\1blobFromImage(/g'
+```
+
+---
+
+## 4. Building against them in ROS 2
+
+Both packages are `ament_cmake` packages that export a namespaced CMake target,
+replacing catkin's `LIBRARIES`:
+
+```cmake
+find_package(sam_onnx_ros REQUIRED)
+find_package(yolo_onnx_ros REQUIRED)
+
+target_link_libraries(${PROJECT_NAME} PRIVATE  # PUBLIC if your public headers include theirs
+  sam_onnx_ros::sam_onnx_ros
+  yolo_onnx_ros::yolo_onnx_ros
+)
+```
+
+They bring their own dependencies (`onnxruntime_ros`, OpenCV, and CUDA or
+TensorRT when enabled) through `ament_export_dependencies`, so you don't need
+to list those yourself.
+
+Other `yolo_onnx_ros` packaging changes:
 
 - `yolo_onnx_ros_node` is installed to `lib/yolo_onnx_ros`, so
   `ros2 run yolo_onnx_ros yolo_onnx_ros_node` finds it.
