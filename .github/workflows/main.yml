@@ -12,7 +12,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        ros_distro: [noetic, noetic-cu12.8.2-devel]
+        ros_distro: [jazzy, rolling-u24, jazzy-cu12.8.2-devel]
     steps:
       - name: TUe CI
         uses: tue-robotics/tue-env/ci/main@master

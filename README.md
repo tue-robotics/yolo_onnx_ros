@@ -80,8 +80,8 @@ The TensorRT backend is enabled by default when the CUDA toolkit is found, and r
 2. Build the package. Without the CUDA toolkit, it falls back to an ONNX-only build. Optionally set the CUDA architectures of your GPU:
 
    ```bash
-   catkin config --cmake-args -DCMAKE_CUDA_ARCHITECTURES=<your-gpu-architecture>
-   catkin build yolo_onnx_ros
+   colcon build --packages-select yolo_onnx_ros \
+     --cmake-args -DCMAKE_CUDA_ARCHITECTURES=<your-gpu-architecture>
    ```
 
 3. TensorRT inference requires a serialized `.trt`/`.engine` file (not the `.onnx` file) and a `coco.names` labels file placed next to it, mirroring the `coco.yaml` used for the ONNX backend. Without a labels file, class names stay empty even though detections still work.
@@ -94,34 +94,20 @@ Set `-Dyolo_onnx_ros_TENSORRT_ENABLED=OFF` to build an ONNX-only package, even w
 
 2. Navigate to the root directory of the repository.
 
-3. Create a build directory and navigate to it:
+3. Source ROS 2 Jazzy and build the package with colcon:
 
    ```console
-   mkdir build && cd build
+   source /opt/ros/jazzy/setup.bash
+   colcon build --packages-select yolo_onnx_ros
    ```
 
-4. Run CMake to generate the build files:
+4. Source the workspace:
 
    ```console
-   cmake ..
+   source install/setup.bash
    ```
 
-   **Notice**:
-
-   If you encounter an error indicating that the `ONNXRUNTIME_ROOT` variable is not set correctly, you can resolve this by building the project using the appropriate command tailored to your system.
-
-   ```console
-   # compiled in a linux system
-   cmake -D LINUX=TRUE ..
-   ```
-
-5. Build the project:
-
-   ```console
-   make
-   ```
-
-6. The built executable should now be located in the `build` directory.
+5. The built executable is installed in the workspace.
 
 ## Usage 🚀
 
@@ -138,11 +124,11 @@ To run the detector from your own C++ application:
 #include "yolo_onnx_ros/detection.hpp"
 
 YoloWrapper wrapper;
-DL_INIT_PARAM params;
-std::tie(wrapper, params) = Initialize("yolov8n.onnx", YOLO::Backend::kOnnx);
+DlInitParam params;
+std::tie(wrapper, params) = initialize("yolov8n.onnx", YOLO::Backend::ONNX);
 
 cv::Mat img = cv::imread("image.jpg");
-std::vector<DL_RESULT> results = Detector(wrapper, img);
+std::vector<DlResult> results = detector(wrapper, img);
 ```
 
-Pass `YOLO::Backend::kTensorRT` instead to use the TensorRT backend (see [TensorRT Backend (Optional)](#tensorrt-backend-optional-)) with a `.trt`/`.engine` model path.
+Pass `YOLO::Backend::TENSORRT` instead to use the TensorRT backend (see [TensorRT Backend (Optional)](#tensorrt-backend-optional-)) with a `.trt`/`.engine` model path.

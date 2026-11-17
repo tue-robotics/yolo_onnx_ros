@@ -1,32 +1,40 @@
 #include "yolo_onnx_ros/detection.hpp"
+#include "yolo_onnx_ros/yolo_inference.hpp"
+#include <cstddef>
+#include <filesystem>
+#include <memory>
+#include <opencv2/core/mat.hpp>
+#include <stdexcept>
+#include <string>
+#include <tuple>
+#include <utility>
+#include <vector>
 #include <yolo_onnx_ros/config.hpp>
 
 #include <console_bridge/console.h>
 
 #include <fstream>
-#include <iomanip>
-#include <iostream>
 
 namespace
 {
 #if defined(YOLO_ONNX_ROS_TENSORRT_ENABLED) && YOLO_ONNX_ROS_TENSORRT_ENABLED
-std::vector<DL_RESULT> DetectTensorRT(YoloWrapper& wrapper, const cv::Mat& img)
+std::vector<DlResult> detectTensorRt(YoloWrapper& wrapper, const cv::Mat& img)
 {
-    auto detections = wrapper.trtDetector->detect(img);
-    std::vector<DL_RESULT> res;
+    const auto detections = wrapper.trtDetector->detect(img);
+    std::vector<DlResult> res;
     res.reserve(detections.size());
     for (const auto& det : detections)
     {
-        DL_RESULT r;
-        r.classId    = det.classId;
+        DlResult r;
+        r.classId = det.classId;
         r.confidence = det.conf;
-        r.box        = cv::Rect(det.box.x, det.box.y, det.box.width, det.box.height);
+        r.box = cv::Rect(det.box.x, det.box.y, det.box.width, det.box.height);
         res.push_back(r);
     }
     return res;
 }
 
-void InitializeTensorRT(YoloWrapper& wrapper, const std::filesystem::path& model_filename)
+void initializeTensorRt(YoloWrapper& wrapper, const std::filesystem::path& model_filename)
 {
     if (model_filename.extension() == ".onnx")
     {
@@ -41,35 +49,33 @@ void InitializeTensorRT(YoloWrapper& wrapper, const std::filesystem::path& model
     wrapper.classes = wrapper.trtDetector->getClassNames();
 }
 #else
-std::vector<DL_RESULT> DetectTensorRT(YoloWrapper&, const cv::Mat&)
+std::vector<DlResult> detectTensorRt(YoloWrapper&, const cv::Mat&)
 {
     throw std::runtime_error(
         "[ERROR] Detector: backend 'tensorRT' was requested but "
-        "'yolo_onnx_ros' was compiled WITHOUT TensorRT support."
-    );
+        "'yolo_onnx_ros' was compiled WITHOUT TensorRT support.");
 }
 
-void InitializeTensorRT(YoloWrapper&, const std::filesystem::path&)
+void initializeTensorRt(YoloWrapper&, const std::filesystem::path&)
 {
     throw std::runtime_error(
         "[ERROR] Initialize: backend 'tensorRT' was requested but "
-        "'yolo_onnx_ros' was compiled WITHOUT TensorRT support."
-    );
+        "'yolo_onnx_ros' was compiled WITHOUT TensorRT support.");
 }
 #endif
-}  // namespace
+} // namespace
 
-std::vector<DL_RESULT> Detector(YoloWrapper& wrapper, const cv::Mat& img)
+std::vector<DlResult> detector(YoloWrapper& wrapper, const cv::Mat& img)
 {
-    std::vector<DL_RESULT> res;
+    std::vector<DlResult> res;
 
-    if (wrapper.backend == YOLO::Backend::kOnnx)
+    if (wrapper.backend == YOLO::Backend::ONNX)
     {
-        wrapper.onnxDetector->RunSession(img, res);
+        wrapper.onnxDetector->runSession(img, res);
     }
-    else if (wrapper.backend == YOLO::Backend::kTensorRT)
+    else if (wrapper.backend == YOLO::Backend::TENSORRT)
     {
-        res = DetectTensorRT(wrapper, img);
+        res = detectTensorRt(wrapper, img);
     }
 
 #ifdef LOGGING
@@ -84,39 +90,27 @@ std::vector<DL_RESULT> Detector(YoloWrapper& wrapper, const cv::Mat& img)
         std::cout << std::fixed << std::setprecision(2);
 
         std::string label;
-        if (!wrapper.classes.empty() && re.classId >= 0 &&
-            static_cast<size_t>(re.classId) < wrapper.classes.size())
+        if (!wrapper.classes.empty() && re.classId >= 0 && static_cast<size_t>(re.classId) < wrapper.classes.size())
         {
             label = wrapper.classes[re.classId] + " " +
-                std::to_string(confidence).substr(0, std::to_string(confidence).size() - 4);
+                    std::to_string(confidence).substr(0, std::to_string(confidence).size() - 4);
         }
 
-        cv::rectangle(
-            img,
-            cv::Point(re.box.x, re.box.y - 25),
-            cv::Point(re.box.x + static_cast<int>(label.length()) * 15, re.box.y),
-            color,
-            cv::FILLED
-        );
+        cv::rectangle(img,
+                      cv::Point(re.box.x, re.box.y - 25),
+                      cv::Point(re.box.x + static_cast<int>(label.length()) * 15, re.box.y),
+                      color,
+                      cv::FILLED);
 
         cv::putText(
-            img,
-            label,
-            cv::Point(re.box.x, re.box.y - 5),
-            cv::FONT_HERSHEY_SIMPLEX,
-            0.75,
-            cv::Scalar(0, 0, 0),
-            2
-        );
+            img, label, cv::Point(re.box.x, re.box.y - 5), cv::FONT_HERSHEY_SIMPLEX, 0.75, cv::Scalar(0, 0, 0), 2);
     }
 #endif
 
     return res;
 }
 
-
-
-// void Classifier(std::unique_ptr<YOLO_V8>& p)
+// void Classifier(std::unique_ptr<YoloV8>& p)
 // {
 //     std::filesystem::path current_path = std::filesystem::current_path();
 //     std::filesystem::path imgs_path = current_path;// / "images"
@@ -130,8 +124,8 @@ std::vector<DL_RESULT> Detector(YoloWrapper& wrapper, const cv::Mat& img)
 //             std::string img_path = i.path().string();
 //             //std::cout << img_path << std::endl;
 //             cv::Mat img = cv::imread(img_path);
-//             std::vector<DL_RESULT> res;
-//             const char* ret = p->RunSession(img, res);
+//             std::vector<DlResult> res;
+//             const char* ret = p->runSession(img, res);
 
 //             float positionY = 50;
 //             for (int i = 0; i < res.size(); i++)
@@ -139,9 +133,9 @@ std::vector<DL_RESULT> Detector(YoloWrapper& wrapper, const cv::Mat& img)
 //                 int r = dis(gen);
 //                 int g = dis(gen);
 //                 int b = dis(gen);
-//                 cv::putText(img, std::to_string(i) + ":", cv::Point(10, positionY), cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(b, g, r), 2);
-//                 cv::putText(img, std::to_string(res.at(i).confidence), cv::Point(70, positionY), cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(b, g, r), 2);
-//                 positionY += 50;
+//                 cv::putText(img, std::to_string(i) + ":", cv::Point(10, positionY), cv::FONT_HERSHEY_SIMPLEX, 1,
+//                 cv::Scalar(b, g, r), 2); cv::putText(img, std::to_string(res.at(i).confidence), cv::Point(70,
+//                 positionY), cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(b, g, r), 2); positionY += 50;
 //             }
 
 //             cv::imshow("TEST_CLS", img);
@@ -152,9 +146,7 @@ std::vector<DL_RESULT> Detector(YoloWrapper& wrapper, const cv::Mat& img)
 //     }
 // }
 
-
-
-int ReadYaml(const std::filesystem::path& filename, std::unique_ptr<YOLO_V8>& p)
+int readYaml(const std::filesystem::path& filename, std::unique_ptr<YoloV8>& p)
 {
     std::ifstream file(filename);
     if (!file.is_open())
@@ -182,8 +174,8 @@ int ReadYaml(const std::filesystem::path& filename, std::unique_ptr<YOLO_V8>& p)
             start = i + 1;
             in_names_section = true;
         }
-        else if (in_names_section && !lines[i].empty() &&
-                 lines[i][0] != ' ' && lines[i][0] != '\t' && lines[i][0] != '-')
+        else if (in_names_section && !lines[i].empty() && lines[i][0] != ' ' && lines[i][0] != '\t' &&
+                 lines[i][0] != '-')
         {
             // Found next top-level key (no indentation)
             end = i;
@@ -205,18 +197,24 @@ int ReadYaml(const std::filesystem::path& filename, std::unique_ptr<YOLO_V8>& p)
         // Remove leading whitespace
         trimmed.erase(0, trimmed.find_first_not_of(" \t"));
 
-        if (trimmed.empty()) continue;
+        if (trimmed.empty())
+            continue;
 
         // Handle both formats: "0: Apple" and "- Apple"
         std::string name;
-        size_t colon_pos = trimmed.find(':');
-        if (colon_pos != std::string::npos) {
+        size_t const colon_pos = trimmed.find(':');
+        if (colon_pos != std::string::npos)
+        {
             // Dict format: "0: Apple"
             name = trimmed.substr(colon_pos + 1);
-        } else if (trimmed[0] == '-') {
+        }
+        else if (trimmed[0] == '-')
+        {
             // List format: "- Apple"
             name = trimmed.substr(1);
-        } else {
+        }
+        else
+        {
             continue;
         }
 
@@ -224,7 +222,8 @@ int ReadYaml(const std::filesystem::path& filename, std::unique_ptr<YOLO_V8>& p)
         name.erase(0, name.find_first_not_of(" \t"));
         name.erase(name.find_last_not_of(" \t\r\n") + 1);
 
-        if (!name.empty()) {
+        if (!name.empty())
+        {
             names.push_back(name);
         }
     }
@@ -240,47 +239,45 @@ int ReadYaml(const std::filesystem::path& filename, std::unique_ptr<YOLO_V8>& p)
     return 0;
 }
 
-std::tuple<YoloWrapper, DL_INIT_PARAM> Initialize(const std::filesystem::path& model_filename,
-                                                  YOLO::Backend backend)
+std::tuple<YoloWrapper, DlInitParam> initialize(const std::filesystem::path& model_filename, YOLO::Backend backend)
 {
     YoloWrapper wrapper;
     wrapper.backend = backend;
-    DL_INIT_PARAM params;
+    DlInitParam params;
 
-    if (backend == YOLO::Backend::kOnnx)
+    if (backend == YOLO::Backend::ONNX)
     {
-        wrapper.onnxDetector = std::make_unique<YOLO_V8>();
+        wrapper.onnxDetector = std::make_unique<YoloV8>();
 
         // Class names are optional — skip silently if absent (e.g. YOLO26)
         const auto yaml_path = model_filename.parent_path() / "coco.yaml";
         if (std::filesystem::exists(yaml_path))
-            ReadYaml(yaml_path, wrapper.onnxDetector);
+            readYaml(yaml_path, wrapper.onnxDetector);
 
         params.rectConfidenceThreshold = 0.1;
         params.iouThreshold = 0.5;
         params.modelPath = model_filename;
-        params.imgSize = { 640, 640 };
-        params.modelType = YOLO_DETECT_V8;
+        params.imgSize = {640, 640};
+        params.modelType = ModelType::YOLO_DETECT_V8;
         params.cudaEnable = YOLO_ONNX_ROS_CUDA_ENABLED;
 
-        wrapper.onnxDetector->CreateSession(params);
+        wrapper.onnxDetector->createSession(params);
         wrapper.classes = wrapper.onnxDetector->classes;
     }
-    else if (backend == YOLO::Backend::kTensorRT)
+    else if (backend == YOLO::Backend::TENSORRT)
     {
-        InitializeTensorRT(wrapper, model_filename);
+        initializeTensorRt(wrapper, model_filename);
     }
 
     return {std::move(wrapper), std::move(params)};
 }
 
-
 // void ClsTest()
 // {
-//     std::unique_ptr<YOLO_V8> yoloDetector = std::make_unique<YOLO_V8>();
+//     std::unique_ptr<YoloV8> yoloDetector = std::make_unique<YoloV8>();
 //     std::string model_path = "cls.onnx";
 //     ReadCocoYaml(yoloDetector);
-//     DL_INIT_PARAM params{ model_path, YOLO_CLS, {224, 224} };
-//     yoloDetector->CreateSession(params);
+//     DlInitParam params{ model_path, ModelType::YOLO_CLS, {224, 224} };
+//     yoloDetector->createSession(params);
 //     Classifier(yoloDetector);
 // }
