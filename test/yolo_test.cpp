@@ -1,7 +1,13 @@
-#include "yolo_onnx_ros/yolo_inference.hpp"
 #include "yolo_onnx_ros/detection.hpp"
+#include "yolo_onnx_ros/yolo_inference.hpp"
 #include <gtest/gtest.h>
-#include <opencv2/opencv.hpp>
+#include <memory>
+#include <opencv2/core.hpp>
+#include <opencv2/core/hal/interface.h>
+#include <stdexcept>
+#include <tuple>
+#include <utility>
+#include <vector>
 
 #if defined(YOLO_ONNX_ROS_CUDA_ENABLED) && YOLO_ONNX_ROS_CUDA_ENABLED
 #include <cuda_runtime.h>
@@ -16,8 +22,8 @@ protected:
     {
 #if defined(YOLO_ONNX_ROS_CUDA_ENABLED) && YOLO_ONNX_ROS_CUDA_ENABLED
         // A CUDA build always runs the ONNX backend on the GPU, so skip when no GPU is available (e.g. CI)
-        int deviceCount = 0;
-        if (cudaGetDeviceCount(&deviceCount) != cudaSuccess || deviceCount == 0)
+        int device_count = 0;
+        if (cudaGetDeviceCount(&device_count) != cudaSuccess || device_count == 0)
         {
             GTEST_SKIP() << "Built with CUDA, but no CUDA device is available";
         }
@@ -33,10 +39,10 @@ protected:
 
         // Setup common parameters
         YoloWrapper wrapper;
-        std::tie(wrapper, params) = Initialize("./yolo26m.onnx", YOLO::Backend::kOnnx);
+        std::tie(wrapper, params) = initialize("./yolo26m.onnx", YOLO::Backend::ONNX);
         yolo = std::move(wrapper.onnxDetector);
 
-        NonSquareImgSize = { testImage_800x600.cols, testImage_800x600.rows };
+        NonSquareImgSize = {testImage_800x600.cols, testImage_800x600.rows};
     }
 
     void TearDown() override
@@ -49,65 +55,63 @@ protected:
     cv::Mat testImage_640x640;
     cv::Mat testImage_800x600;
     cv::Mat testImage_realistic;
-    DL_INIT_PARAM params;
+    DlInitParam params;
     std::vector<int> NonSquareImgSize;
-    std::unique_ptr<YOLO_V8> yolo;
+    std::unique_ptr<YoloV8> yolo;
 };
 
 TEST_F(YoloInferenceTest, ObjectCreation)
 {
-    EXPECT_NO_THROW({
-        YOLO_V8 localYolo;
-    });
+    EXPECT_NO_THROW({ YoloV8 local_yolo; });
 }
 
 TEST_F(YoloInferenceTest, PreProcessSquareImage)
 {
-    cv::Mat processedImg;
-    char* result = yolo->PreProcess(testImage_640x640, params.imgSize, processedImg);
+    cv::Mat processed_img;
+    char const* result = yolo->preProcess(testImage_640x640, params.imgSize, processed_img);
 
     EXPECT_EQ(result, nullptr) << "PreProcess should succeed";
-    EXPECT_EQ(processedImg.size(), cv::Size(640, 640)) << "Output should be 640x640";
-    EXPECT_FALSE(processedImg.empty()) << "Processed image should not be empty";
+    EXPECT_EQ(processed_img.size(), cv::Size(640, 640)) << "Output should be 640x640";
+    EXPECT_FALSE(processed_img.empty()) << "Processed image should not be empty";
 }
 
 TEST_F(YoloInferenceTest, PreProcessRectangularImage)
 {
-    cv::Mat processedImg;
-    char* result = yolo->PreProcess(testImage_800x600, NonSquareImgSize, processedImg);
+    cv::Mat processed_img;
+    char const* result = yolo->preProcess(testImage_800x600, NonSquareImgSize, processed_img);
 
     EXPECT_EQ(result, nullptr) << "PreProcess should succeed";
-    EXPECT_EQ(processedImg.size(), cv::Size(800, 600)) << "Output should be letterboxed to 800x600";
-    EXPECT_FALSE(processedImg.empty()) << "Processed image should not be empty";
+    EXPECT_EQ(processed_img.size(), cv::Size(800, 600)) << "Output should be letterboxed to 800x600";
+    EXPECT_FALSE(processed_img.empty()) << "Processed image should not be empty";
 }
 
 TEST_F(YoloInferenceTest, CreateSessionWithValidModel)
 {
-    const char* result = yolo->CreateSession(params);
+    const char* result = yolo->createSession(params);
     EXPECT_EQ(result, nullptr) << "CreateSession should succeed with valid parameters";
 }
 
 TEST_F(YoloInferenceTest, CreateSessionWithInvalidModel)
 {
     params.modelPath = "nonexistent_model.onnx";
-    EXPECT_THROW(yolo->CreateSession(params), std::runtime_error)
+    EXPECT_THROW(yolo->createSession(params), std::runtime_error)
         << "CreateSession should throw an exception with invalid model path";
 }
 
 TEST_F(YoloInferenceTest, FullInferencePipeline)
 {
     // First create session
-    const char* createResult = yolo->CreateSession(params);
-    ASSERT_EQ(createResult, nullptr) << "Session creation must succeed for inference test";
+    const char* create_result = yolo->createSession(params);
+    ASSERT_EQ(create_result, nullptr) << "Session creation must succeed for inference test";
 
-    std::vector<DL_RESULT> results;
-    const char* runResult = yolo->RunSession(testImage_realistic, results);
+    std::vector<DlResult> results;
+    const char* run_result = yolo->runSession(testImage_realistic, results);
 
-    EXPECT_EQ(runResult, nullptr) << "RunSession should succeed";
+    EXPECT_EQ(run_result, nullptr) << "RunSession should succeed";
 }
 
 // Run all tests
-int main(int argc, char **argv)
+int main(int argc, char** argv)
 {
     testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();

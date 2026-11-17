@@ -1,9 +1,10 @@
 #ifndef YOLO_ONNX_ROS_CONFIG_HPP_
 #define YOLO_ONNX_ROS_CONFIG_HPP_
 
-#define YOLO_ONNX_FALSE 0
-#define YOLO_ONNX_TRUE 1
-#define YOLO_ONNX_ROS_CUDA_ENABLED YOLO_ONNX_@yolo_onnx_ros_CUDA_ENABLED@
-#define YOLO_ONNX_ROS_TENSORRT_ENABLED YOLO_ONNX_@yolo_onnx_ros_TENSORRT_ENABLED@
+// Used in preprocessor conditionals, so these cannot be enums
+// NOLINTBEGIN(cppcoreguidelines-macro-to-enum,modernize-macro-to-enum)
+#cmakedefine01 YOLO_ONNX_ROS_CUDA_ENABLED
+#cmakedefine01 YOLO_ONNX_ROS_TENSORRT_ENABLED
+// NOLINTEND(cppcoreguidelines-macro-to-enum,modernize-macro-to-enum)
 
-#endif //#define YOLO_ONNX_ROS_CONFIG_HPP_
+#endif // YOLO_ONNX_ROS_CONFIG_HPP_

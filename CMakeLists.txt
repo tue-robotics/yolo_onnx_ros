@@ -3,7 +3,9 @@ cmake_minimum_required(VERSION 3.24 FATAL_ERROR)
 project(yolo_onnx_ros)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-set(CMAKE_CXX_STANDARD 17)
+if(NOT CMAKE_CXX_STANDARD)
+  set(CMAKE_CXX_STANDARD 20)
+endif()
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
@@ -74,6 +76,8 @@ endif()
 
 set(${PROJECT_NAME}_CONFIG_HEADER ${CMAKE_CURRENT_BINARY_DIR}/include/${PROJECT_NAME}/config.hpp)
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/include/${PROJECT_NAME})
+set(YOLO_ONNX_ROS_CUDA_ENABLED ${${PROJECT_NAME}_CUDA_ENABLED})
+set(YOLO_ONNX_ROS_TENSORRT_ENABLED ${${PROJECT_NAME}_TENSORRT_ENABLED})
 configure_file(include/${PROJECT_NAME}/config.hpp.in ${${PROJECT_NAME}_CONFIG_HEADER} @ONLY)
 
 add_library(${PROJECT_NAME} SHARED
@@ -84,7 +88,6 @@ target_include_directories(${PROJECT_NAME} PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>
   $<INSTALL_INTERFACE:include>
-  ${onnxruntime_ros_INCLUDE_DIRS}/..
 )
 target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE
   ${${PROJECT_NAME}_CUDA_INCLUDE_DIRS}
@@ -104,7 +107,10 @@ endif()
 
 if(${PROJECT_NAME}_TENSORRT_ENABLED)
   find_package(Threads REQUIRED)
+  # Vendored source, keep it out of compile_commands.json so clang-tidy does not check it
+  set(CMAKE_EXPORT_COMPILE_COMMANDS OFF)
   add_library(${PROJECT_NAME}_cuda_preprocessing STATIC ${${PROJECT_NAME}_YOLOS_TRT_CUDA_SOURCE})
+  set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
   set_target_properties(${PROJECT_NAME}_cuda_preprocessing PROPERTIES
     COMPILE_OPTIONS ""
     POSITION_INDEPENDENT_CODE ON
@@ -187,9 +193,15 @@ install(TARGETS ${PROJECT_NAME}_node DESTINATION lib/${PROJECT_NAME})
 install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/resources DESTINATION share/${PROJECT_NAME})
 
 if(BUILD_TESTING)
+  find_package(ament_cmake_clang_format REQUIRED)
+  find_package(ament_cmake_clang_tidy REQUIRED)
   find_package(ament_cmake_gtest REQUIRED)
   find_package(ament_cmake_lint_cmake REQUIRED)
   find_package(ament_cmake_xmllint REQUIRED)
+  find_package(tue_lint_config REQUIRED)
+  ament_clang_format(CONFIG_FILE ${tue_lint_config_DIR}/../config/.clang-format --clang-format-version=21)
+  ament_clang_tidy(CONFIG_FILE ${tue_lint_config_DIR}/../config/.clang-tidy --clang-tidy-version=21
+    ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_BINARY_DIR}/compile_commands.json)
   ament_lint_cmake(MAX_LINE_LENGTH 120 "${CMAKE_CURRENT_SOURCE_DIR}/CMakeLists.txt")
   ament_xmllint(MAX_LINE_LENGTH 120)
 

@@ -124,11 +124,11 @@ To run the detector from your own C++ application:
 #include "yolo_onnx_ros/detection.hpp"
 
 YoloWrapper wrapper;
-DL_INIT_PARAM params;
-std::tie(wrapper, params) = Initialize("yolov8n.onnx", YOLO::Backend::kOnnx);
+DlInitParam params;
+std::tie(wrapper, params) = initialize("yolov8n.onnx", YOLO::Backend::ONNX);
 
 cv::Mat img = cv::imread("image.jpg");
-std::vector<DL_RESULT> results = Detector(wrapper, img);
+std::vector<DlResult> results = detector(wrapper, img);
 ```
 
-Pass `YOLO::Backend::kTensorRT` instead to use the TensorRT backend (see [TensorRT Backend (Optional)](#tensorrt-backend-optional-)) with a `.trt`/`.engine` model path.
+Pass `YOLO::Backend::TENSORRT` instead to use the TensorRT backend (see [TensorRT Backend (Optional)](#tensorrt-backend-optional-)) with a `.trt`/`.engine` model path.

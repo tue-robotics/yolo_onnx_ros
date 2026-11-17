@@ -1,19 +1,27 @@
 #include "yolo_onnx_ros/detection.hpp"
+#include "yolo_onnx_ros/yolo_inference.hpp"
 
 #include <filesystem>
 #include <iostream>
-#include <opencv2/highgui.hpp>
+#include <opencv2/core/mat.hpp>
+#include <opencv2/imgcodecs.hpp>
+#include <stdexcept>
 #include <string>
+#include <tuple>
+#include <vector>
 
-static YOLO::Backend ParseBackend(const std::string& value)
+namespace
+{
+YOLO::Backend parseBackend(const std::string& value)
 {
     if (value == "onnx")
-        return YOLO::Backend::kOnnx;
+        return YOLO::Backend::ONNX;
     if (value == "tensorrt" || value == "trt")
-        return YOLO::Backend::kTensorRT;
+        return YOLO::Backend::TENSORRT;
 
     throw std::runtime_error("Unknown backend: " + value);
 }
+} // namespace
 
 int main(int argc, char* argv[])
 {
@@ -26,25 +34,24 @@ int main(int argc, char* argv[])
     const std::filesystem::path model_name = argv[1];
     const std::filesystem::path imgs_path = argv[2];
 
-    YOLO::Backend backend = YOLO::Backend::kOnnx;
+    YOLO::Backend backend = YOLO::Backend::ONNX;
     if (argc >= 4)
     {
-        backend = ParseBackend(argv[3]);
+        backend = parseBackend(argv[3]);
     }
 
     YoloWrapper wrapper;
-    DL_INIT_PARAM params;
-    std::tie(wrapper, params) = Initialize(model_name, backend);
+    DlInitParam params;
+    std::tie(wrapper, params) = initialize(model_name, backend);
 
     for (const auto& entry : std::filesystem::directory_iterator(imgs_path))
     {
-        if (entry.path().extension() == ".jpg" ||
-            entry.path().extension() == ".png" ||
+        if (entry.path().extension() == ".jpg" || entry.path().extension() == ".png" ||
             entry.path().extension() == ".jpeg")
         {
             const std::string img_path = entry.path().string();
-            cv::Mat img = cv::imread(img_path);
-            std::vector<DL_RESULT> results = Detector(wrapper, img);
+            cv::Mat const img = cv::imread(img_path);
+            std::vector<DlResult> const results = detector(wrapper, img);
 
 #ifdef LOGGING
             for (const auto& result : results)
